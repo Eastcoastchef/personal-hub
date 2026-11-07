@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: toolkit hub. Dark header band with crest and live date, then a Today strip, spotlight tiles, and tool grids by life area */
+:root{
+  --head:#13262b; --head-mid:#1d3a40; --copper:#c98a5a; --copper-light:#e8b48a; --copper-pale:rgba(201,138,90,.12);
+  --bg:#f2f4f3; --paper:#ffffff; --ink:#172022; --muted:#5f6b6d; --line:#dde3e2;
+  --green:#1f7a52; --greenbg:#e5f3ec; --amber:#8a5a00; --amberbg:#fff2d8; --red:#b23a2b; --redbg:#fcebe8;
+  --display:"Sora","Helvetica Neue",Arial,sans-serif; --body:"DM Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1517; --paper:#152024; --ink:#e6edec; --muted:#93a3a5; --line:#24343a; --copper-pale:rgba(201,138,90,.18);
+  --greenbg:#143326; --green:#62cf98; --amberbg:#33270f; --amber:#f0b857; --redbg:#3a1a16; --red:#f08a7a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1517; --paper:#152024; --ink:#e6edec; --muted:#93a3a5; --line:#24343a; --copper-pale:rgba(201,138,90,.18);
+  --greenbg:#143326; --green:#62cf98; --amberbg:#33270f; --amber:#f0b857; --redbg:#3a1a16; --red:#f08a7a; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+.gut{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Header */
+.header{background:var(--head);position:relative;overflow:hidden}
+.header::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 12% 30%,rgba(201,138,90,.14),transparent 55%);pointer-events:none}
+.header-inner{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:22px}
+.brand{display:flex;align-items:center;gap:14px}
+.crest{width:46px;height:46px;border-radius:50%;background:var(--copper-pale);border:1px solid rgba(201,138,90,.45);display:grid;place-items:center;font-family:var(--display);font-weight:700;color:var(--copper-light);font-size:15px;letter-spacing:.5px}
+.brand-name{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.3px;color:#fff}
+.brand-tag{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.clock{text-align:right}
+.clock .day{font-family:var(--display);font-size:14px;font-weight:600;color:var(--copper-light)}
+.clock .date{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.rule{height:1px;background:linear-gradient(90deg,transparent,rgba(201,138,90,.55) 25%,rgba(201,138,90,.55) 75%,transparent)}
+
+main{padding-block:26px 64px}
+.label{font-size:11px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;color:var(--muted);margin:30px 0 12px;display:flex;align-items:center;gap:10px}
+.label:first-child{margin-top:0}
+.label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* Today strip */
+.today{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+@media (max-width:760px){.today{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-width:0}
+.card h3{font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.days{width:46px;height:40px;border-radius:9px;background:var(--copper-pale);color:var(--ink);display:grid;place-items:center;flex-shrink:0;text-align:center;line-height:1}
+.days b{font-size:15px;font-variant-numeric:tabular-nums}
+.days span{font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.info{min-width:0}
+.info b{font-size:14.5px}
+.info div{font-size:12.5px;color:var(--muted);margin-top:1px}
+.pill{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.pill.hold{background:var(--amberbg);color:var(--amber)}
+.pill.ok{background:var(--greenbg);color:var(--green)}
+.case{border-left:3px solid var(--amber)}
+.case dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:4px 0 12px;font-size:13.5px}
+.case dt{color:var(--muted)}
+.case dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.case p{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+
+/* Spotlight */
+.spots{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:760px){.spots{grid-template-columns:repeat(2,1fr)}}
+.spot{display:flex;flex-direction:column;justify-content:space-between;text-decoration:none;border-radius:13px;padding:18px 16px;min-height:128px;position:relative;overflow:hidden;
+  background:linear-gradient(155deg,var(--head-mid),var(--head));border:1px solid rgba(201,138,90,.18);box-shadow:0 4px 18px rgba(19,38,43,.22);transition:transform .15s}
+a.spot:hover{transform:translateY(-2px)}
+.spot::after{content:"";position:absolute;bottom:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(201,138,90,.12),transparent 70%)}
+.bar{width:22px;height:2px;background:var(--copper);border-radius:2px;margin-bottom:10px}
+.spot-name{font-family:var(--display);font-weight:600;font-size:15px;color:#fff;line-height:1.25}
+.spot-badge{position:relative;margin-top:10px;font-size:12px;font-weight:600;color:var(--copper-light);display:flex;align-items:center;gap:6px}
+.spot-badge .n{background:rgba(201,138,90,.2);border-radius:5px;padding:1px 6px;font-variant-numeric:tabular-nums}
+.spot.soon .spot-badge{color:rgba(255,255,255,.45)}
+
+/* Tool grids */
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:760px){.tools{grid-template-columns:1fr 1fr}}
+@media (max-width:420px){.tools{grid-template-columns:1fr}}
+.tool{display:flex;align-items:center;gap:11px;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);padding:11px 13px;min-height:60px;transition:border-color .15s;min-width:0}
+a.tool:hover{border-color:var(--copper)}
+.ico{width:32px;height:32px;flex-shrink:0;border-radius:8px;background:var(--copper-pale);display:grid;place-items:center;color:var(--copper)}
+.ico svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tname{font-weight:700;font-size:13.5px;line-height:1.2}
+.tdesc{font-size:12px;color:var(--muted);margin-top:2px}
+.tool.soon{border-style:dashed}
+.tool.soon .tname::after{content:"Soon";margin-left:6px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 5px;vertical-align:2px}
+a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
+
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:32px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.foot .st{display:flex;align-items:center;gap:6px}
+.foot .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pound" viewBox="0 0 24 24"><path d="M16 6.5a4 4 0 0 0-7 2.6V19h8"/><path d="M6 13h7"/><path d="M6 19h3"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="13" r=".6"/><circle cx="16.5" cy="13" r=".6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5 5L4 17l3 3 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-2.5z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M3 13l18-7-7 18-2.5-8z"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24"><circle cx="7" cy="9" r="1.6"/><circle cx="12" cy="6.5" r="1.6"/><circle cx="17" cy="9" r="1.6"/><path d="M8 16c0-2.5 2-4.5 4-4.5s4 2 4 4.5-2 3-4 3-4-.5-4-3z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M4 13h16M12 9c-2-4-6-3-4 0M12 9c2-4 6-3 4 0"/></symbol>
+</svg>
+
+<div class="header">
+  <div class="gut header-inner">
+    <div class="brand">
+      <div class="crest">CJ</div>
+      <div>
+        <div class="brand-name">CARL JONES</div>
+        <div class="brand-tag">Personal Hub · family, money, home</div>
+      </div>
+    </div>
+    <div class="clock"><div class="day" id="day">Saturday</div><div class="date" id="date">7 November 2026</div></div>
+  </div>
+  <div class="rule"></div>
+</div>
+
+<main class="gut">
+  <div class="label">Coming up</div>
+  <div class="today">
+    <div class="card">
+      <h3>Key dates</h3>
+      <div id="dates"></div>
+    </div>
+    <div class="card case">
+      <h3>Open matter</h3>
+      <div class="row" style="padding-top:0;border:0"><div class="info"><b>Ben's Sterling learner policy</b><div>Debt with ICB, disputed</div></div><span class="pill hold">On hold</span></div>
+      <dl>
+        <dt>Amount</dt><dd>£148.34</dd>
+        <dt>Hold until</dt><dd>16 Dec 2026</dd>
+      </dl>
+      <p>Policy number, ICB ref, complaint letter and call script are in the Personal project files.</p>
+    </div>
+  </div>
+
+  <div class="label">My hubs</div>
+  <div class="spots">
+    <a class="spot" href="https://claude.ai/artifact/HieQXJwfcQME8kwsBZi7DS" target="_blank" rel="noopener"><div><div class="bar"></div><div class="spot-name">My CV</div></div><div class="spot-badge"><span class="n">Live</span> Head Chef CV</div></a>
+    <a class="spot" href="https://baseline-kitchen-toolkit.pages.dev/admin" target="_blank" rel="noopener"><div><div class="bar"></div><div class="spot-name">Baseline Kitchen Toolkit</div></div><div class="spot-badge"><span class="n">Live</span> admin</div></a>
+    <a class="spot" href="https://dukes-head-toolkit.chef-b23.workers.dev/" target="_blank" rel="noopener"><div><div class="bar"></div><div class="spot-name">Duke's Head Toolkit</div></div><div class="spot-badge"><span class="n">Live</span> kitchen toolkit</div></a>
+    <a class="spot" href="https://lenne-lodge-tool.pages.dev/" target="_blank" rel="noopener"><div><div class="bar"></div><div class="spot-name">Lenne Lodge Toolkit</div></div><div class="spot-badge"><span class="n">Live</span> lodge tool</div></a>
+  </div>
+
+  <div class="label">Family</div>
+  <div class="tools">
+    <div class="tool soon"><div class="ico"><svg><use href="#i-user"/></svg></div><div><div class="tname">Ben</div><div class="tdesc">Learner driver, lessons and test</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-gift"/></svg></div><div><div class="tname">Birthdays</div><div class="tdesc">Dates and gift ideas</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-cal"/></svg></div><div><div class="tname">Family Calendar</div><div class="tdesc">Shifts, school, plans</div></div></div>
+  </div>
+
+  <div class="label">Money &amp; Insurance</div>
+  <div class="tools">
+    <div class="tool soon"><div class="ico"><svg><use href="#i-pound"/></svg></div><div><div class="tname">Bills &amp; Budget</div><div class="tdesc">Direct debits, monthly spend</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-shield"/></svg></div><div><div class="tname">Policies</div><div class="tdesc">Home, car, life, pet</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-file"/></svg></div><div><div class="tname">Disputes &amp; Claims</div><div class="tdesc">Letters, refs, deadlines</div></div></div>
+  </div>
+
+  <div class="label">Home &amp; Cars</div>
+  <div class="tools">
+    <div class="tool soon"><div class="ico"><svg><use href="#i-home"/></svg></div><div><div class="tname">Home Admin</div><div class="tdesc">Utilities, council tax, contacts</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-wrench"/></svg></div><div><div class="tname">Home Maintenance</div><div class="tdesc">Boiler, repairs, tradespeople</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-car"/></svg></div><div><div class="tname">Cars</div><div class="tdesc">MOT, tax, service, insurance</div></div></div>
+  </div>
+
+  <div class="label">Health, Travel &amp; the Dog</div>
+  <div class="tools">
+    <div class="tool soon"><div class="ico"><svg><use href="#i-heart"/></svg></div><div><div class="tname">Health</div><div class="tdesc">Appointments, prescriptions</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-plane"/></svg></div><div><div class="tname">Travel</div><div class="tdesc">Trips, bookings, passports</div></div></div>
+    <div class="tool soon"><div class="ico"><svg><use href="#i-paw"/></svg></div><div><div class="tname">The Dog</div><div class="tdesc">Vet, jabs, flea and worm</div></div></div>
+  </div>
+
+  <div class="label">Career</div>
+  <div class="tools">
+    <a class="tool" href="https://claude.ai/artifact/HieQXJwfcQME8kwsBZi7DS" target="_blank" rel="noopener"><div class="ico"><svg><use href="#i-file"/></svg></div><div><div class="tname">CV</div><div class="tdesc">Head Chef, web version</div></div></a>
+  </div>
+
+  <div class="foot"><span class="st"><span class="dot"></span>Private hub</span><span>Personal use only. Work stays in the work toolkits.</span></div>
+</main>
+
+<script>
+(function(){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  document.getElementById("day").textContent=days[today.getDay()];
+  document.getElementById("date").textContent=today.getDate()+" "+months[today.getMonth()]+" "+today.getFullYear();
+  function next(m,d){var x=new Date(today.getFullYear(),m,d);if(x<today)x.setFullYear(x.getFullYear()+1);return x}
+  var items=[
+    {t:"ICB hold ends",s:"Sterling policy, decide pay or settle",d:new Date(2026,11,16),p:"hold",pl:"Deadline"},
+    {t:"Christmas Day",s:"Busiest week at work",d:next(11,25),p:"ok",pl:"Holiday"},
+    {t:"Ben's birthday",s:"31 March",d:next(2,31),p:"ok",pl:"Family"}
+  ].filter(function(i){return i.d>=today}).sort(function(a,b){return a.d-b.d});
+  var box=document.getElementById("dates");
+  items.forEach(function(i){
+    var n=Math.round((i.d-today)/864e5);
+    var r=document.createElement("div");r.className="row";
+    r.innerHTML='<div class="days"><div><b>'+n+'</b><br><span>'+(n===1?"day":"days")+'</span></div></div><div class="info"><b></b><div></div></div><span class="pill '+i.p+'">'+i.pl+'</span>';
+    r.querySelector(".info b").textContent=i.t;
+    r.querySelector(".info div").textContent=i.d.getDate()+" "+months[i.d.getMonth()]+" "+i.d.getFullYear()+" · "+i.s;
+    box.appendChild(r);
+  });
+})();
+</script>
+</body>
+</html>
