@@ -1,7 +1,7 @@
 # Carl's Personal Hub
 
 Carl Jones's personal hub: family, money, home, health, travel and the dog, plus links to his CV and his other hubs.
-It deploys to Cloudflare Workers (static assets, no build step). Every push to `main` goes live.
+Live at https://personal-hub.carl-839.workers.dev/ . It deploys to Cloudflare Workers (static assets, no build step). Every push to `main` goes live.
 
 - Site files live in `public/`. `wrangler.toml` serves that folder. Nothing outside `public/` goes live.
 - The page is public to anyone with the address. Keep policy numbers, account numbers, reference numbers and other private details off it unless a PIN lock is added first.
