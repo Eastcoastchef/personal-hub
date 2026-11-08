@@ -18,6 +18,9 @@
   H.create = (col, data) => H.api("POST", col, data);
   H.update = (col, id, data) => H.api("PUT", col + "/" + id, data);
   H.remove = (col, id) => H.api("DELETE", col + "/" + id);
+  // Lenne Lodge calendar feed, read by the worker. Empty list if it cannot be reached.
+  let lodgeP = null;
+  H.lodgeEvents = () => (lodgeP = lodgeP || H.api("GET", "lodge-calendar").then(r => Array.isArray(r) ? r : []).catch(() => []));
 
   // ---- Dates (all as local YYYY-MM-DD) ----
   H.today = function () { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };

@@ -75,7 +75,11 @@ H.tool({
       '<tr style="color:var(--muted);text-align:left"><th style="padding:4px 0">Month</th><th>In</th><th>Out</th><th style="text-align:right">Pot</th></tr>'+
       rows.map(r=>'<tr style="border-top:1px solid var(--line)"><td style="padding:5px 0">'+MON[r.d.getMonth()]+" "+String(r.d.getFullYear()).slice(2)+'</td><td>'+(r.inn?money(r.inn):"")+'</td><td>'+(r.out?H.money(r.out)+' <span class="meta" style="font-size:11px">'+r.what.join(", ")+'</span>':"")+'</td><td style="text-align:right'+(r.short?';color:var(--red)':'')+'">'+H.money(r.bal)+'</td></tr>').join("")+
       '</table></div></details></div>'+
+      '<div class="label" style="margin-top:18px">From the lodge calendar</div><div class="card" id="lodgecal"><p class="meta" style="margin:0">Loading the Lenne Lodge calendar…</p></div>'+
       '<a href="'+H.esc(lu)+'" target="_blank" rel="noopener" class="card" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;text-decoration:none;color:var(--ink)"><span><b>Lenne Lodge tool</b><span class="meta" style="display:block">The lodge\'s own app: calendar and more</span></span><span style="color:var(--copper);font-size:18px">↗</span></a>';
+    H.lodgeEvents().then(l=>{ const box=document.getElementById("lodgecal"); if(!box) return; const up=l.filter(e=>{const x=H.parse(e.date); return x&&x>=H.today();}).slice(0,8);
+      box.innerHTML = up.length ? up.map(e=>'<div style="display:flex;gap:12px;padding:7px 0;border-top:1px solid var(--line)"><b style="min-width:92px;font-variant-numeric:tabular-nums">'+H.short(H.parse(e.date))+'</b><span>'+H.esc(e.title)+'<span class="meta" style="display:block">'+[e.time,e.where].filter(Boolean).map(H.esc).join(" · ")+'</span></span></div>').join("").replace('border-top:1px solid var(--line)','')+'<p class="meta" style="margin:10px 0 0;font-size:12px">Read from the Lenne Lodge tool. Updates by itself, so no need to add these as meetings.</p>'
+        : '<p class="meta" style="margin:0">No upcoming dates from the lodge calendar, or it could not be reached just now.</p>'; });
   },
   sections: [
     { col:"mason_profile", title:"Lodge and costs", intro:"Your lodge, what each meeting costs, and the savings plan. Edit when prices change and the plan updates.", addLabel:"Add lodge", noun:"lodge details",

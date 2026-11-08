@@ -55,12 +55,13 @@ const CTX = H.tool({
 // ---------- Month view ----------
 // Shows diary events plus dates from the other tools and family birthdays.
 const BDAYS=[["Caley",1985,8,17],["Jessica",2009,11,17],["Ben",2008,3,31],["Bryony",2002,4,30]];
-const KIND={diary:"Diary",bday:"Birthday",health:"Health",travel:"Travel",renew:"Renewal",bill:"Bill",dog:"Maggie",home:"Home",car:"Car"};
-let other={}, view=new Date(H.today().getFullYear(),H.today().getMonth(),1), picked=H.today(), diary=[];
+const KIND={diary:"Diary",bday:"Birthday",health:"Health",travel:"Travel",renew:"Renewal",bill:"Bill",dog:"Maggie",home:"Home",car:"Car",lodge:"Lodge"};
+let other={}, lodge=[], view=new Date(H.today().getFullYear(),H.today().getMonth(),1), picked=H.today(), diary=[];
 const app=document.getElementById("app");
 const box=document.createElement("section"); box.className="calbox"; box.setAttribute("aria-label","Month view");
 const OTHER=["cars","health_appts","travel_trips","renewals","bills","dog_tasks","home_tasks"];
 Promise.all(OTHER.map(c=>H.list(c).catch(()=>[]))).then(r=>{OTHER.forEach((c,i)=>other[c]=r[i]); drawCal();});
+H.lodgeEvents().then(l=>{ lodge=l; if(Object.keys(other).length) drawCal(); });
 
 function eventsIn(y,m){
   const first=new Date(y,m,1), last=new Date(y,m+1,0), out=[];
@@ -74,6 +75,7 @@ function eventsIn(y,m){
   (other.cars||[]).forEach(c=>[["mot","MOT"],["tax","tax"],["insurance","insurance"],["service","service"]].forEach(([k,l])=>{const d=H.parse(c[k]); if(d) put(d,"car",(c.reg||"").toUpperCase()+" "+l,"/cars.html");}));
   (other.dog_tasks||[]).forEach(t=>{const d=H.nextEvery(t); if(d) put(d,"dog",t.name,"/dog.html");});
   (other.home_tasks||[]).forEach(t=>{const d=H.nextEvery(t); if(d) put(d,"home",t.name,"/home.html");});
+  lodge.forEach(e=>{const d=H.parse(e.date); if(d) put(d,"lodge",(e.time?e.time+" ":"")+e.title,"/freemasons.html");});
   return out;
 }
 

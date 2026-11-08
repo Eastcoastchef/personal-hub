@@ -17,6 +17,7 @@ Live at https://personal-hub.carl-839.workers.dev/ . It deploys to Cloudflare Wo
 - Pages: `bills.html`, `renewals.html`, `dog.html` (hand-built), and `borrowing.html` (mortgage and cards, list `borrowing`), `freemasons.html` (lodge costs, Stream pot plan and meetings, lists `mason_profile` and `mason_meetings`), `home.html`, `health.html`, `travel.html`, `calendar.html`, `disputes.html` (built from section configs by `tool-engine.js`). All share `tools.css` and `hub.js`. `index.html` pulls due items from every list into Coming up.
 - To add a tool: add its lists to COLLECTIONS in worker.js, write a page that calls `Hub.tool({sections, stats})`, link its tile in index.html, and add its due items to the Coming up loader.
 - Data lives in D1 database `personal-hub` (binding `DB`, id in wrangler.toml), one table `items` (id, col, data JSON, created_at, updated_at). The worker creates it if missing.
+- Lodge calendar: `/api/lodge-calendar` (logged in only) reads the Lenne Lodge .ics feed (https://lenne-lodge-tool.pages.dev/calendar, cached an hour) and returns its events. Calendar, Freemasons and the front page show them.
 - API: `/api/<list>` GET/POST and `/api/<list>/<id>` PUT/DELETE, only with a valid session. Writes need the header `X-Hub: 1`. Lists are in COLLECTIONS in worker.js. A new list must be added to COLLECTIONS in worker.js.
 - Test locally with `npx wrangler dev --local` and a `.dev.vars` file holding test secrets (never committed).
 

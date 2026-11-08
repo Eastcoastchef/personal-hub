@@ -202,6 +202,61 @@ const COLLECTIONS = new Set([
 const MAX_BODY = 20000;
 let schemaReady = false;
 
+// ---------- Lodge calendar (read-only .ics feed from the Lenne Lodge tool) ----------
+const LODGE_ICS = "https://lenne-lodge-tool.pages.dev/calendar";
+
+async function lodgeCalendar() {
+  try {
+    const res = await fetch(LODGE_ICS, { cf: { cacheTtl: 3600, cacheEverything: true }, headers: { Accept: "text/calendar" } });
+    if (!res.ok) return json({ error: "Lodge calendar returned " + res.status }, 502);
+    const text = await res.text();
+    if (!/BEGIN:VCALENDAR/.test(text)) return json({ error: "Lodge calendar is not an .ics feed" }, 502);
+    return json(parseICS(text));
+  } catch (e) {
+    return json({ error: "Could not reach the lodge calendar" }, 502);
+  }
+}
+
+// Turns an .ics file into [{date:"YYYY-MM-DD", time:"HH:MM"|"", title, where, notes, uid}] in UK time,
+// keeping events from 30 days ago to 18 months ahead.
+export function parseICS(text, now = new Date()) {
+  const lines = text.replace(/\r\n?/g, "\n").replace(/\n[ \t]/g, "").split("\n");
+  const un = (s) => s.replace(/\\n/gi, "\n").replace(/\\([,;\\])/g, "$1").trim();
+  const ukParts = (d) => {
+    const f = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+    const p = Object.fromEntries(f.formatToParts(d).map((x) => [x.type, x.value]));
+    return { date: p.year + "-" + p.month + "-" + p.day, time: (p.hour === "24" ? "00" : p.hour) + ":" + p.minute };
+  };
+  const when = (key, val) => {
+    const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(val.trim());
+    if (!m) return null;
+    if (!m[4] || /VALUE=DATE(?!-)/.test(key)) return { date: m[1] + "-" + m[2] + "-" + m[3], time: "" };
+    if (m[7]) return ukParts(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])));
+    return { date: m[1] + "-" + m[2] + "-" + m[3], time: m[4] + ":" + m[5] };
+  };
+  const out = [];
+  let ev = null;
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") { ev = {}; continue; }
+    if (line === "END:VEVENT") { if (ev && ev.date) out.push(ev); ev = null; continue; }
+    if (!ev) continue;
+    const i = line.indexOf(":");
+    if (i < 0) continue;
+    const key = line.slice(0, i), val = line.slice(i + 1), name = key.split(";")[0].toUpperCase();
+    if (name === "DTSTART") Object.assign(ev, when(key, val) || {});
+    else if (name === "SUMMARY") ev.title = un(val);
+    else if (name === "LOCATION") ev.where = un(val);
+    else if (name === "DESCRIPTION") ev.notes = un(val).slice(0, 500);
+    else if (name === "UID") ev.uid = val.trim();
+    else if (name === "STATUS" && /CANCELLED/i.test(val)) ev.cancelled = true;
+  }
+  const from = new Date(now.getTime() - 30 * 864e5).toISOString().slice(0, 10);
+  const to = new Date(now.getTime() + 548 * 864e5).toISOString().slice(0, 10);
+  return out.filter((e) => !e.cancelled && e.date >= from && e.date <= to)
+    .map((e) => ({ date: e.date, time: e.time || "", title: e.title || "Lodge meeting", where: e.where || "", notes: e.notes || "", uid: e.uid || "" }))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 200);
+}
+
 async function ensureSchema(db) {
   if (schemaReady) return;
   await db.batch([
@@ -221,6 +276,7 @@ export async function handleApi(request, env, url) {
     addSecurityHeaders(headers);
     return new Response(body, { headers });
   }
+  if (url.pathname === "/api/lodge-calendar" && request.method === "GET") return lodgeCalendar();
   const parts = url.pathname.split("/").filter(Boolean); // ["api", col, id?]
   const col = parts[1];
   const id = parts[2];

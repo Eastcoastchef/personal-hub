@@ -292,8 +292,9 @@
 
   render();
   var cols = ["mason_profile","mason_meetings","borrowing","cars","bills","renewals","dog_tasks","dog_profile","home_tasks","home_suppliers","health_appts","health_meds","travel_trips","travel_docs","cal_events","cases"];
-  Promise.all(cols.map(function(c){ return H.list(c).catch(function(){ return []; }); })).then(function(res){
+  Promise.all(cols.map(function(c){ return H.list(c).catch(function(){ return []; }); }).concat([H.lodgeEvents()])).then(function(res){
     cols.forEach(function(c,i){ D[c] = res[i]; });
+    D.lodge = res[cols.length] || [];
     var add = function(o){ if (o.d) { o.late = H.days(o.d) < 0; items.push(o); } };
     carsList = D.cars;
     D.cars.forEach(function(c){ [["mot","MOT"],["tax","tax"],["insurance","insurance"],["service","service"]].forEach(function(k){ var d = H.parse(c[k[0]]); if (d && H.days(d) <= 30) add({t:(c.reg||"").toUpperCase()+" "+k[1], s:c.model||"", d:d, icon:"i-car", href:"/cars.html", tool:"cars"}); }); });
@@ -311,6 +312,7 @@
     D.cal_events.forEach(function(e){ var d = H.parse(e.date); if (!d) return; if (e.yearly){ d = new Date(today.getFullYear(), d.getMonth(), d.getDate()); if (d < today) d.setFullYear(d.getFullYear()+1); } if (H.days(d) >= 0 && H.days(d) <= 60) add({t:e.title, s:e.time?"at "+e.time:"diary", d:d, icon:"i-cal", href:"/calendar.html"}); });
     D.mason_meetings.forEach(function(m){ var d = H.parse(m.date); if (d && H.days(d) >= 0 && H.days(d) <= 14) add({t:"Lodge meeting", s:(m.time?"at "+m.time:"")+(m.dining?(m.time?", ":"")+"dining":""), d:d, icon:"i-sq", href:"/freemasons.html", tool:"mason"}); });
     (D.mason_profile||[]).forEach(function(p){ var sm = Number(p.subsMonth); if (!sm) return; var d = new Date(today.getFullYear(), sm-1, 1); if (d < today) d.setFullYear(d.getFullYear()+1); if (H.days(d) <= 30) add({t:"Lodge subs due", s:"", d:d, icon:"i-sq", href:"/freemasons.html", tool:"mason"}); });
+    D.lodge.forEach(function(e){ var d = H.parse(e.date); if (d && H.days(d) >= 0 && H.days(d) <= 14) add({t:e.title, s:"lodge"+(e.time?" at "+e.time:""), d:d, icon:"i-sq", href:"/freemasons.html", tool:"mason"}); });
     D.borrowing.forEach(function(b){ var d = H.parse(b.dealEnd); if (d && H.days(d) <= 90) add({t:b.name+" deal ends", s:"look at what it moves to", d:d, icon:"i-bank", href:"/borrowing.html", tool:"borrowing"}); });
     D.cases.forEach(function(c){ if (["settled","closed"].indexOf(c.status) > -1) return; var d = H.parse(c.deadline); if (d && H.days(d) <= 30 && !/ICB hold/i.test(c.deadlineWhat||"")) add({t:c.title, s:c.deadlineWhat||"deadline", d:d, icon:"i-file", href:"/disputes.html", tool:"cases"}); });
     // Late items from fixed/past dates should not linger: only tool items can be late
