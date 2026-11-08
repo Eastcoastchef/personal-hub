@@ -298,7 +298,7 @@
     var add = function(o){ if (o.d) { o.late = H.days(o.d) < 0; items.push(o); } };
     carsList = D.cars;
     D.cars.forEach(function(c){ [["mot","MOT"],["tax","tax"],["insurance","insurance"],["service","service"]].forEach(function(k){ var d = H.parse(c[k[0]]); if (d && H.days(d) <= 30) add({t:(c.reg||"").toUpperCase()+" "+k[1], s:c.model||"", d:d, icon:"i-car", href:"/cars.html", tool:"cars"}); }); });
-    D.bills.forEach(function(b){ var d = H.nextDue(b.due, b.freq); if (d && H.days(d) <= 7) add({t:b.name, s:((b.who||"carl")==="caley"?"Caley's bill":"Bill"), d:d, icon:"i-pound", href:"/bills.html", tool:"bills"}); });
+    D.bills.forEach(function(b){ if (!b.manual) return; var d = H.nextDue(b.due, b.freq); if (d && H.days(d) <= 7) add({t:b.name, s:((b.who||"carl")==="caley"?"Caley's bill":"Bill"), d:d, icon:"i-pound", href:"/bills.html", tool:"bills"}); });
     D.renewals.forEach(function(r){ var d = H.parse(r.date); if (!d) return; var n = H.days(d); if (n <= (Number(r.remind)||30)) add({t:r.name, s:r.autorenew?"auto-renews, check price":"renewal", d:d, icon:"i-shield", href:"/renewals.html", tool:"renewals"}); });
     var dogName = (D.dog_profile[0] && D.dog_profile[0].name) || "Maggie";
     document.getElementById("dogName").textContent = dogName;
