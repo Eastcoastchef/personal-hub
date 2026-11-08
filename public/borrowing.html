@@ -29,7 +29,7 @@
 <script>
 (function(){
 const H = Hub;
-const TYPES=[["mortgage","Mortgage"],["card","Credit card"],["loan","Loan"],["finance","Car finance"],["other","Other"]];
+const TYPES=[["mortgage","Mortgage"],["card","Credit card"],["loan","Loan"],["finance","Car finance"],["store","Store credit"],["family","Owed to family"],["other","Other"]];
 const TN=Object.fromEntries(TYPES);
 const nextPay=b=>{ const day=Number(b.payDay); if(!day) return null; const t=H.today(); let d=new Date(t.getFullYear(),t.getMonth(),Math.min(day,new Date(t.getFullYear(),t.getMonth()+1,0).getDate())); if(d<t) d=new Date(t.getFullYear(),t.getMonth()+1,Math.min(day,new Date(t.getFullYear(),t.getMonth()+2,0).getDate())); return d; };
 const H2=b=>(b.history||[]);
@@ -47,7 +47,7 @@ H.tool({
     const monthly=all.reduce((s,b)=>s+(Number(b.monthly)||0),0);
     const nx=all.map(b=>({b,d:nextPay(b)})).filter(x=>x.d).sort((a,b)=>a.d-b.d)[0];
     return [
-      {k:"Total owed", v:H.money(owed), s:all.some(b=>est(b))?"includes an estimate":all.length+(all.length===1?" account":" accounts")},
+      {k:"Total owed", v:H.money(owed), s:all.some(b=>b.who==="caley")?"Carl "+H.money(all.filter(b=>b.who!=="caley").reduce((s,b)=>s+owedNow(b),0))+" · Caley "+H.money(all.filter(b=>b.who==="caley").reduce((s,b)=>s+owedNow(b),0)):all.some(b=>est(b))?"includes an estimate":all.length+(all.length===1?" account":" accounts")},
       {k:"Paid each month", v:H.money(monthly), s:"Regular payments"},
       {k:"Next payment", v:nx?H.short(nx.d):"–", s:nx?nx.b.name:"No dates set"},
     ];
@@ -55,8 +55,8 @@ H.tool({
   sections: [
     { col:"borrowing", title:"Mortgage and cards", intro:"Balances, payments, rates and terms. The mortgage balance moves on by itself each month as an estimate. Tap Update balance when you check your app to set the real figure.", addLabel:"Add account", noun:"account",
       emptyTitle:"Nothing here yet", emptyText:"Add your mortgage, credit cards and any loans.",
-      defaults:()=>({type:"card", asOf:H.iso(H.today())}),
-      fields:[{name:"name",label:"Name",required:true,placeholder:"e.g. Halifax mortgage",full:true},{name:"type",label:"Type",type:"select",options:TYPES},{name:"lender",label:"Lender"},
+      defaults:()=>({who:"carl", type:"card", asOf:H.iso(H.today())}),
+      fields:[{name:"name",label:"Name",required:true,placeholder:"e.g. Halifax mortgage",full:true},{name:"who",label:"Whose",type:"select",options:[["carl","Carl"],["caley","Caley"]]},{name:"type",label:"Type",type:"select",options:TYPES},{name:"lender",label:"Lender"},
         {name:"balance",label:"Balance (£)",type:"number",step:"0.01"},{name:"asOf",label:"Balance on",type:"date"},
         {name:"monthly",label:"Monthly payment (£)",type:"number",step:"0.01"},{name:"payDay",label:"Paid on day of month",type:"number",step:"1"},
         {name:"rate",label:"Interest rate (% a year)",type:"number",step:"0.01"},{name:"limit",label:"Credit limit (£)",type:"number",step:"0.01"},
@@ -74,7 +74,7 @@ H.tool({
         const facts=[["Monthly",b.monthly!=null&&b.monthly!==""?H.money(b.monthly)+(np?" · next "+H.short(np):""):""],["Rate",b.rate!=null&&b.rate!==""?b.rate+"%":""],["Limit",b.limit?H.money(b.limit)+" · "+used+"% used":""],["Term left",b.term||""],["Deal ends",de?H.long(de):""],["Change",change],["Last checked",e?H.money(b.balance)+" on "+H.long(H.parse(b.asOf)):""],["Estimate",e?e.n+(e.n===1?" payment":" payments")+" since, at "+(b.rate||0)+"% interest":""]].filter(f=>f[1]);
         const bar=used!=null?'<div style="height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden"><div style="height:100%;width:'+used+'%;background:var(--copper)"></div></div>':"";
         return {initials:b.type==="mortgage"?"MG":b.type==="card"?"CC":(b.name||"?").slice(0,2), title:b.name,
-          pill:'<span class="pill flat">'+H.esc(TN[b.type]||"Other")+'</span>'+(de&&H.days(de)<=90&&H.days(de)>=0?' <span class="pill soon">Deal ends soon</span>':''),
+          pill:(b.who==="caley"?'<span class="pill flat">Caley</span> ':'')+'<span class="pill flat">'+H.esc(TN[b.type]||"Other")+'</span>'+(de&&H.days(de)<=90&&H.days(de)>=0?' <span class="pill soon">Deal ends soon</span>':''),
           sub:[b.lender, b.asOf&&H.parse(b.asOf)?"balance on "+H.long(H.parse(b.asOf)):""].filter(Boolean).join(" · "),
           right:e?H.money(e.v):b.balance!=null&&b.balance!==""?H.money(b.balance):"", rightSub:e?"estimated":"owed",
           subHtml:bar+(facts.length?'<dl class="facts" style="margin-top:10px;font-size:13px">'+facts.map(f=>'<dt>'+f[0]+'</dt><dd>'+H.esc(f[1])+'</dd>').join("")+'</dl>':"")+(b.notes?'<div class="note">'+H.esc(b.notes)+'</div>':"")};

@@ -189,7 +189,7 @@ function randomBase32(bytes) {
 // Only reachable with a valid session (checked in fetch above).
 
 const COLLECTIONS = new Set([
-  "bills", "renewals", "dog_profile", "dog_tasks", "dog_log",
+  "bills", "income", "renewals", "dog_profile", "dog_tasks", "dog_log",
   "home_suppliers", "home_tasks", "home_trades", "home_log", "home_meters",
   "health_appts", "health_meds", "health_contacts",
   "travel_trips", "travel_docs",
