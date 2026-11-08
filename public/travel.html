@@ -46,11 +46,11 @@ H.tool({
   sections: [
     { col:"travel_trips", title:"Trips", intro:"Dates, bookings and references in one place.", addLabel:"Add trip", noun:"trip",
       emptyTitle:"No trips yet", emptyText:"Add holidays, weekends away and work trips.",
-      defaults:()=>({who:"everyone"}),
-      fields:[{name:"name",label:"Trip",required:true,placeholder:"e.g. Tenerife"},{name:"who",label:"Who's going",type:"select",options:H.PEOPLE},{name:"start",label:"Leave",type:"date",required:true},{name:"end",label:"Back",type:"date"},{name:"cost",label:"Total cost (£)",type:"number",step:"0.01"},{name:"ref",label:"Booking references"},{name:"notes",label:"Flights, hotel, parking, transfers",type:"textarea",full:true}],
+      defaults:()=>({who:["carl","caley","jessica","ben"]}),
+      fields:[{name:"name",label:"Trip",required:true,placeholder:"e.g. Tenerife"},{name:"who",label:"Who's going",type:"people",full:true},{name:"start",label:"Leave",type:"date",required:true},{name:"end",label:"Back",type:"date"},{name:"cost",label:"Total cost (£)",type:"number",step:"0.01"},{name:"ref",label:"Booking references"},{name:"notes",label:"Flights, hotel, parking, transfers",type:"textarea",full:true}],
       sort:(a,b)=>{ const x=H.parse(a.end||a.start),y=H.parse(b.end||b.start),t=H.today(); const fa=x>=t, fb=y>=t; if(fa!==fb) return fa?-1:1; return fa?H.parse(a.start)-H.parse(b.start):y-x; },
       row:t=>{ const s=H.parse(t.start), e=H.parse(t.end); const past=(e||s)&&H.days(e||s)<0; const away=s&&H.days(s)<=0&&!past;
-        return {date:past||away?undefined:s, dayBadge:past?[s.getDate(),"been"]:away?["Now","away"]:undefined, title:t.name, pill:past?'<span class="pill flat">Done</span>':away?'<span class="pill ok">Away</span>':"", right:t.cost!=null&&t.cost!==""?H.money(t.cost):"", rightSub:s?H.short(s)+(e?" to "+H.short(e):""):"", sub:[H.PERSON[t.who],t.ref&&("ref "+t.ref)].filter(Boolean).join(" · "), subHtml:t.notes?'<div class="note">'+H.esc(t.notes)+'</div>':""}; } },
+        return {date:past||away?undefined:s, dayBadge:past?[s.getDate(),"been"]:away?["Now","away"]:undefined, title:t.name, pill:past?'<span class="pill flat">Done</span>':away?'<span class="pill ok">Away</span>':"", right:t.cost!=null&&t.cost!==""?H.money(t.cost):"", rightSub:s?H.short(s)+(e?" to "+H.short(e):""):"", sub:[H.whoText(t.who),t.ref&&("ref "+t.ref)].filter(Boolean).join(" · "), subHtml:t.notes?'<div class="note">'+H.esc(t.notes)+'</div>':""}; } },
     { col:"travel_docs", title:"Passports and documents", intro:"Many countries want 3 to 6 months left on a passport, so the warning starts 6 months out.", addLabel:"Add document", noun:"document",
       emptyTitle:"No documents yet", emptyText:"Add passports, licences and GHIC cards for each of you.",
       defaults:()=>({who:"carl",type:"passport",remind:180}),

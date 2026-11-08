@@ -131,3 +131,11 @@ textarea{min-height:70px;resize:vertical}
 .fnav a[aria-current="page"]{color:var(--copper)}
 .fnav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .back{display:none}
+
+.people{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.people label{display:inline-flex;cursor:pointer}
+.people input{position:absolute;opacity:0;width:1px;height:1px}
+.people label span{padding:9px 14px;border-radius:999px;border:1px solid var(--glassline);background:var(--glass);color:var(--ink);font-size:15px;font-weight:500}
+.people input:checked+span{background:var(--copper);border-color:var(--copper);color:#14171c;font-weight:600}
+.people input:focus-visible+span{outline:2px solid var(--copper);outline-offset:2px}
+.people .ghost{padding:9px 14px;border-radius:999px;font-size:14px}

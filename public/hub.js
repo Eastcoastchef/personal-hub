@@ -15,6 +15,11 @@
     return res.json();
   };
   H.list = (col) => H.api("GET", col);
+  // "who" can be one person (old records), "everyone", or a list of people.
+  const FAMILY = ["carl", "caley", "jessica", "ben"];
+  H.whoList = (v) => Array.isArray(v) ? v : v === "everyone" ? FAMILY.slice() : v ? [v] : [];
+  H.whoText = (v) => { const l = H.whoList(v); if (!l.length) return ""; if (FAMILY.every((x) => l.indexOf(x) > -1)) return "Everyone";
+    const n = l.map((x) => (H.PERSON && H.PERSON[x]) || x); return n.length > 1 ? n.slice(0, -1).join(", ") + " and " + n[n.length - 1] : n[0]; };
   H.create = (col, data) => H.api("POST", col, data);
   H.update = (col, id, data) => H.api("PUT", col + "/" + id, data);
   H.remove = (col, id) => H.api("DELETE", col + "/" + id);
@@ -97,6 +102,11 @@
       let ctl;
       if (f.type === "select") {
         ctl = '<select id="' + id + '" name="' + f.name + '">' + f.options.map((o) => '<option value="' + H.esc(o[0]) + '"' + (String(v) === String(o[0]) ? " selected" : "") + ">" + H.esc(o[1]) + "</option>").join("") + "</select>";
+      } else if (f.type === "people") {
+        const opts = f.options || H.PEOPLE.filter((o) => o[0] !== "everyone");
+        const on = H.whoList(v);
+        ctl = '<span class="people" id="' + id + '">' + opts.map((o) => '<label><input type="checkbox" name="' + f.name + '" value="' + H.esc(o[0]) + '"' + (on.indexOf(o[0]) > -1 ? " checked" : "") + "><span>" + H.esc(o[1]) + "</span></label>").join("") +
+          '<button type="button" class="ghost" data-act="all">All</button></span>';
       } else if (f.type === "textarea") {
         ctl = '<textarea id="' + id + '" name="' + f.name + '">' + H.esc(v) + "</textarea>";
       } else if (f.type === "checkbox") {
@@ -118,6 +128,7 @@
     dlg.addEventListener("click", async (e) => {
       const act = e.target.getAttribute && e.target.getAttribute("data-act");
       if (act === "cancel") dlg.close();
+      if (act === "all") { const bx = e.target.parentNode.querySelectorAll("input"); const all = [...bx].every((x) => x.checked); bx.forEach((x) => { x.checked = !all; }); }
       if (act === "del") {
         if (!confirmDel) { confirmDel = true; e.target.textContent = "Tap again to delete"; return; }
         try { await onDelete(); dlg.close(); } catch (err) { H.toast(err.message, true); }
@@ -128,7 +139,8 @@
       const out = {};
       fields.forEach((f) => {
         const el = form.elements[f.name];
-        if (f.type === "checkbox") out[f.name] = el.checked;
+        if (f.type === "people") out[f.name] = [...form.querySelectorAll('input[name="' + f.name + '"]:checked')].map((x) => x.value);
+        else if (f.type === "checkbox") out[f.name] = el.checked;
         else if (f.type === "number") out[f.name] = el.value === "" ? null : Number(el.value);
         else out[f.name] = el.value.trim();
       });

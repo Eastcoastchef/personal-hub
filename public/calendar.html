@@ -44,11 +44,11 @@ const CTX = H.tool({
   sections: [
     { col:"cal_events", title:"Diary", intro:"School dates, family plans, days off, anything with a date. Tick yearly for anniversaries.", addLabel:"Add event", noun:"event",
       emptyTitle:"Nothing in the diary yet", emptyText:"Add plans for any of you. Birthdays are already on the hub's front page.",
-      defaults:()=>({date:H.iso(H.today()),who:"everyone"}),
-      fields:[{name:"title",label:"What",required:true,full:true},{name:"date",label:"Date",type:"date",required:true},{name:"time",label:"Time",type:"time"},{name:"who",label:"Who",type:"select",options:H.PEOPLE},{name:"where",label:"Where"},{name:"yearly",label:"Happens every year",type:"checkbox"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      defaults:()=>({date:H.iso(H.today()),who:["carl","caley","jessica","ben"]}),
+      fields:[{name:"title",label:"What",required:true,full:true},{name:"date",label:"Date",type:"date",required:true},{name:"time",label:"Time",type:"time"},{name:"who",label:"Who",type:"people",full:true},{name:"where",label:"Where"},{name:"yearly",label:"Happens every year",type:"checkbox"},{name:"notes",label:"Notes",type:"textarea",full:true}],
       sort:(a,b)=>{ const t=H.today(); const occ=(ev)=>{ let x=H.parse(ev.date); if(ev.yearly){ x=new Date(t.getFullYear(),x.getMonth(),x.getDate()); if(x<t) x.setFullYear(x.getFullYear()+1);} return x; }; const x=occ(a),y=occ(b); const fa=x>=t,fb=y>=t; if(fa!==fb) return fa?-1:1; return fa?x-y:y-x; },
       row:e=>{ const t=H.today(); let d=H.parse(e.date); if(e.yearly&&d){ d=new Date(t.getFullYear(),d.getMonth(),d.getDate()); if(d<t) d.setFullYear(d.getFullYear()+1);} const past=d&&d<t;
-        return {date:past?undefined:d, dayBadge:past?[d.getDate(),"past"]:undefined, title:e.title, pill:(past?'<span class="pill flat">Past</span>':"")+(e.yearly?' <span class="pill flat">Yearly</span>':""), sub:[H.PERSON[e.who],d&&H.long(d),e.time,e.where].filter(Boolean).join(" · "), subHtml:e.notes?'<div class="note">'+H.esc(e.notes)+'</div>':""}; } },
+        return {date:past?undefined:d, dayBadge:past?[d.getDate(),"past"]:undefined, title:e.title, pill:(past?'<span class="pill flat">Past</span>':"")+(e.yearly?' <span class="pill flat">Yearly</span>':""), sub:[H.whoText(e.who),d&&H.long(d),e.time,e.where].filter(Boolean).join(" · "), subHtml:e.notes?'<div class="note">'+H.esc(e.notes)+'</div>':""}; } },
   ],
 });
 
