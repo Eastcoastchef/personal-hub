@@ -47,11 +47,11 @@ const CTX = H.tool({
 // ---------- Month view ----------
 // Shows diary events plus dates from the other tools and family birthdays.
 const BDAYS=[["Caley",1985,8,17],["Jessica",2009,11,17],["Ben",2008,3,31],["Bryony",2002,4,30]];
-const KIND={diary:"Diary",bday:"Birthday",health:"Health",travel:"Travel",renew:"Renewal",bill:"Bill",dog:"Maggie",home:"Home"};
+const KIND={diary:"Diary",bday:"Birthday",health:"Health",travel:"Travel",renew:"Renewal",bill:"Bill",dog:"Maggie",home:"Home",car:"Car"};
 let other={}, view=new Date(H.today().getFullYear(),H.today().getMonth(),1), picked=H.today(), diary=[];
 const app=document.getElementById("app");
 const box=document.createElement("section"); box.className="calbox"; box.setAttribute("aria-label","Month view");
-const OTHER=["health_appts","travel_trips","renewals","bills","dog_tasks","home_tasks"];
+const OTHER=["cars","health_appts","travel_trips","renewals","bills","dog_tasks","home_tasks"];
 Promise.all(OTHER.map(c=>H.list(c).catch(()=>[]))).then(r=>{OTHER.forEach((c,i)=>other[c]=r[i]); drawCal();});
 
 function eventsIn(y,m){
@@ -63,6 +63,7 @@ function eventsIn(y,m){
   (other.travel_trips||[]).forEach(t=>{const s=H.parse(t.start), e=H.parse(t.end)||s; if(!s) return; for(let d=new Date(s),g=0; d<=e&&g<60; d=H.addDays(d,1),g++) put(d,"travel",t.name,"/travel.html");});
   (other.renewals||[]).forEach(r=>{const d=H.parse(r.date); if(d) put(d,"renew",r.name,"/renewals.html");});
   (other.bills||[]).forEach(b=>{ const f=H.FREQ[b.freq]||H.FREQ.monthly; let d=H.parse(b.due),g=0; if(!d) return; while(d<first&&g++<600) d=f.step(d); while(d<=last&&g++<700){ put(d,"bill",b.name+" "+H.money(b.amount)+((b.who||"carl")==="caley"?" (Caley)":""),"/bills.html"); d=f.step(d);} });
+  (other.cars||[]).forEach(c=>[["mot","MOT"],["tax","tax"],["insurance","insurance"],["service","service"]].forEach(([k,l])=>{const d=H.parse(c[k]); if(d) put(d,"car",(c.reg||"").toUpperCase()+" "+l,"/cars.html");}));
   (other.dog_tasks||[]).forEach(t=>{const d=H.nextEvery(t); if(d) put(d,"dog",t.name,"/dog.html");});
   (other.home_tasks||[]).forEach(t=>{const d=H.nextEvery(t); if(d) put(d,"home",t.name,"/home.html");});
   return out;

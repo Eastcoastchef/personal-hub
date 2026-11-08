@@ -189,6 +189,7 @@ const COLLECTIONS = new Set([
   "travel_trips", "travel_docs",
   "cal_events",
   "cases", "case_log",
+  "cars", "car_log",
 ]);
 const MAX_BODY = 20000;
 let schemaReady = false;

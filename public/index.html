@@ -181,7 +181,7 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   <div class="tools">
     <a class="tool" href="/home.html"><div class="ico"><svg><use href="#i-home"/></svg></div><div><div class="tname">Home</div><div class="tdesc" id="homeDesc">Suppliers, maintenance, tradespeople</div></div></a>
     <a class="tool" href="/calendar.html"><div class="ico"><svg><use href="#i-cal"/></svg></div><div><div class="tname">Family Calendar</div><div class="tdesc" id="calDesc">Plans, school, days off</div></div></a>
-    <a class="tool" href="/renewals.html"><div class="ico"><svg><use href="#i-car"/></svg></div><div><div class="tname">Cars</div><div class="tdesc">MOT, tax and insurance in Renewals</div></div></a>
+    <a class="tool" href="/cars.html"><div class="ico"><svg><use href="#i-car"/></svg></div><div><div class="tname">Cars</div><div class="tdesc" id="carsDesc">Yaris and Tucson: MOT, tax, insurance</div></div></a>
   </div>
 
   <div class="label">Health, Travel &amp; the Dog</div>
@@ -240,7 +240,7 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   draw(fixed);
   if(!window.Hub)return;
   var H=Hub;
-  var cols=["bills","renewals","dog_tasks","dog_profile","home_tasks","home_suppliers","health_appts","health_meds","travel_trips","travel_docs","cal_events","cases"];
+  var cols=["cars","bills","renewals","dog_tasks","dog_profile","home_tasks","home_suppliers","health_appts","health_meds","travel_trips","travel_docs","cal_events","cases"];
   Promise.all(cols.map(function(c){return H.list(c).catch(function(){return []})})).then(function(res){
     var D={}; cols.forEach(function(c,i){D[c]=res[i]});
     var extra=[], bills=D.bills, ren=D.renewals, tasks=D.dog_tasks, dog=D.dog_profile[0];
@@ -262,6 +262,9 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
     var cal=0;
     D.cal_events.forEach(function(e){var d=H.parse(e.date);if(!d)return;if(e.yearly){d=new Date(today.getFullYear(),d.getMonth(),d.getDate());if(d<today)d.setFullYear(d.getFullYear()+1)}if(H.days(d)>=0){cal++;if(H.days(d)<=14)extra.push({t:e.title,s:e.time?"at "+e.time:"diary",d:d,p:"ok",pl:"Diary",href:"/calendar.html"})}});
     if(D.cal_events.length)setDesc("calDesc",cal+" coming up");
+    var carDue=0;
+    D.cars.forEach(function(c){[["mot","MOT"],["tax","tax"],["insurance","insurance"],["service","service"]].forEach(function(k){var d=H.parse(c[k[0]]);if(d&&H.days(d)<=30){carDue++;extra.push({t:(c.reg||"").toUpperCase()+" "+k[1],s:c.model||"car",d:d,p:H.days(d)<0?"late":"soon",pl:H.days(d)<0?"Overdue":"Car",href:"/cars.html"})}})});
+    if(D.cars.length)setDesc("carsDesc",carDue?carDue+" date"+(carDue===1?"":"s")+" due soon":"All dates fine");
     var open=0;
     D.cases.forEach(function(c){if(["settled","closed"].indexOf(c.status)>-1)return;open++;var d=H.parse(c.deadline);if(d&&H.days(d)<=30&&!/ICB hold/i.test(c.deadlineWhat||""))extra.push({t:c.title,s:c.deadlineWhat||"deadline",d:d,p:H.days(d)<0?"late":"hold",pl:"Deadline",href:"/disputes.html"})});
     if(D.cases.length)setDesc("casesDesc",open?open+" open case"+(open===1?"":"s"):"No open cases");

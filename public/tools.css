@@ -124,3 +124,4 @@ textarea{min-height:70px;resize:vertical}
 .dvrow small{color:var(--muted);font-size:12px}
 .dvrow a{color:var(--copper);font-weight:700;font-size:13px;text-decoration:none}
 @media (max-width:640px){.cell{min-height:52px;padding:4px}.evs{display:none}.dots{display:flex}.calbox{padding:10px}}
+.k-car{--kc:#c0504d}

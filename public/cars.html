@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Cars · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Cars</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+const pOpts=[["carl","Carl"],["caley","Caley"]];
+const DATES=[["mot","MOT"],["tax","Road tax"],["insurance","Insurance"],["service","Service"]];
+function dueList(c){ return DATES.map(([k,l])=>({k,l,d:H.parse(c[k])})).filter(x=>x.d).sort((a,b)=>a.d-b.d); }
+const LOGT=[["service","Service"],["mot","MOT"],["repair","Repair"],["tyres","Tyres"],["insurance","Insurance"],["tax","Tax"],["mileage","Mileage check"],["other","Other"]];
+const LT=Object.fromEntries(LOGT);
+const carOpts=d=>d.cars.map(c=>[c.id,(c.reg||"")+" "+(c.model||"")]);
+H.tool({
+  stats: d => {
+    const all=[]; d.cars.forEach(c=>dueList(c).forEach(x=>all.push({...x,c})));
+    const soon=all.filter(x=>H.days(x.d)<=30); const next=all.sort((a,b)=>a.d-b.d)[0];
+    const yr=new Date().getFullYear(); const spent=d.car_log.filter(l=>(H.parse(l.date)||new Date(0)).getFullYear()===yr).reduce((s,l)=>s+(Number(l.cost)||0),0);
+    return [
+      {k:"Due in 30 days", v:String(soon.length), s:soon.length?soon.map(x=>x.c.reg+" "+x.l).slice(0,2).join(", "):"Nothing due"},
+      {k:"Next date", v:next?H.short(next.d):"–", s:next?next.c.reg+" · "+next.l:"Add the dates for each car"},
+      {k:"Spent on the cars this year", v:H.money(spent), s:"From the log"},
+    ];
+  },
+  sections: [
+    { col:"cars", title:"Cars", intro:"MOT, tax, insurance and service dates for each car. Check the MOT and tax dates free on GOV.UK.", addLabel:"Add car", noun:"car",
+      emptyTitle:"No cars yet", emptyText:"Add each car with its dates.",
+      fields:[{name:"reg",label:"Reg",required:true},{name:"model",label:"Make and model"},{name:"driver",label:"Mainly driven by",type:"select",options:pOpts},{name:"mileage",label:"Mileage",type:"number",step:"1"},
+        {name:"mot",label:"MOT due",type:"date"},{name:"tax",label:"Tax due",type:"date"},{name:"insurance",label:"Insurance renews",type:"date"},{name:"service",label:"Service due",type:"date"},
+        {name:"insurer",label:"Insurer"},{name:"policy",label:"Policy number"},{name:"breakdown",label:"Breakdown cover"},{name:"tyres",label:"Tyre size"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>((dueList(a)[0]||{}).d||9e15)-((dueList(b)[0]||{}).d||9e15),
+      row:c=>{ const L=dueList(c); const n=L[0];
+        const chips=DATES.map(([k,l])=>{ const d=H.parse(c[k]); if(!d) return '<span class="pill flat">'+l+': not set</span>'; const x=H.days(d); return '<span class="pill '+(x<0?"late":x<=30?"soon":"ok")+'">'+l+' '+H.short(d)+'</span>'; }).join(" ");
+        const reg=encodeURIComponent((c.reg||"").replace(/\s+/g,""));
+        return {date:n?n.d:null, title:(c.reg||"").toUpperCase()+(c.model?" · "+c.model:""), sub:[c.driver&&("mainly "+(c.driver==="caley"?"Caley":"Carl")),c.mileage&&(Number(c.mileage).toLocaleString("en-GB")+" miles"),c.insurer,c.policy&&("policy "+c.policy),c.breakdown&&("breakdown: "+c.breakdown)].filter(Boolean).join(" · "),
+          subHtml:'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'+chips+'</div><div class="note"><a href="https://www.check-mot.service.gov.uk/" target="_blank" rel="noopener" style="color:var(--copper)">Check MOT history</a> · <a href="https://vehicleenquiry.service.gov.uk/" target="_blank" rel="noopener" style="color:var(--copper)">Check tax</a>'+(c.notes?" · "+H.esc(c.notes):"")+'</div>'}; } },
+    { col:"car_log", title:"Car log", intro:"Services, MOTs, repairs and tyres, with mileage and cost.", addLabel:"Add entry", noun:"log entry",
+      emptyTitle:"Nothing logged yet", emptyText:"Log each service, MOT and repair. Handy when you sell the car.",
+      defaults:d=>({date:H.iso(H.today()),car:(d.cars[0]||{}).id,type:"service"}),
+      fields:[{name:"car",label:"Car",type:"select",options:carOpts},{name:"date",label:"Date",type:"date",required:true},{name:"type",label:"Type",type:"select",options:LOGT},{name:"mileage",label:"Mileage",type:"number",step:"1"},{name:"cost",label:"Cost (£)",type:"number",step:"0.01"},{name:"garage",label:"Garage"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>(H.parse(b.date)||0)-(H.parse(a.date)||0),
+      row:(l,d)=>{ const dt=H.parse(l.date); const c=d.cars.find(x=>x.id===l.car); return {dayBadge:[dt?dt.getDate():"?", dt?H.short(dt).split(" ")[1]+" "+String(dt.getFullYear()).slice(2):""], title:(LT[l.type]||"Entry")+(c?" · "+(c.reg||"").toUpperCase():""), right:l.cost!=null&&l.cost!==""?H.money(l.cost):"", sub:[l.mileage&&(Number(l.mileage).toLocaleString("en-GB")+" miles"),l.garage,l.notes].filter(Boolean).join(" · ")}; } },
+  ],
+});
+
+})();
+</script>
+</body>
+</html>
