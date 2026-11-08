@@ -33,26 +33,33 @@ const TYPES=[["mortgage","Mortgage"],["card","Credit card"],["loan","Loan"],["fi
 const TN=Object.fromEntries(TYPES);
 const nextPay=b=>{ const day=Number(b.payDay); if(!day) return null; const t=H.today(); let d=new Date(t.getFullYear(),t.getMonth(),Math.min(day,new Date(t.getFullYear(),t.getMonth()+1,0).getDate())); if(d<t) d=new Date(t.getFullYear(),t.getMonth()+1,Math.min(day,new Date(t.getFullYear(),t.getMonth()+2,0).getDate())); return d; };
 const H2=b=>(b.history||[]);
+// Estimated balance: roll the last checked balance forward by each payment since then, adding monthly interest at the rate.
+const est=b=>{ const start=H.parse(b.asOf), bal=Number(b.balance), pay=Number(b.monthly), day=Number(b.payDay), r=(Number(b.rate)||0)/1200;
+  if(b.type!=="mortgage"||!start||!isFinite(bal)||!pay||!day) return null;
+  let d=new Date(start.getFullYear(),start.getMonth(),day); if(d<=start) d=new Date(start.getFullYear(),start.getMonth()+1,day);
+  let v=bal, n=0; while(d<=H.today()&&n<600){ v=v+v*r-pay; n++; d=new Date(d.getFullYear(),d.getMonth()+1,day); }
+  return n?{v:Math.max(0,v),n}:null; };
+const owedNow=b=>{ const e=est(b); return e?e.v:(Number(b.balance)||0); };
 H.tool({
   stats: d => {
     const all=d.borrowing;
-    const owed=all.reduce((s,b)=>s+(Number(b.balance)||0),0);
+    const owed=all.reduce((s,b)=>s+owedNow(b),0);
     const monthly=all.reduce((s,b)=>s+(Number(b.monthly)||0),0);
     const nx=all.map(b=>({b,d:nextPay(b)})).filter(x=>x.d).sort((a,b)=>a.d-b.d)[0];
     return [
-      {k:"Total owed", v:H.money(owed), s:all.length+(all.length===1?" account":" accounts")},
+      {k:"Total owed", v:H.money(owed), s:all.some(b=>est(b))?"includes an estimate":all.length+(all.length===1?" account":" accounts")},
       {k:"Paid each month", v:H.money(monthly), s:"Regular payments"},
       {k:"Next payment", v:nx?H.short(nx.d):"–", s:nx?nx.b.name:"No dates set"},
     ];
   },
   sections: [
-    { col:"borrowing", title:"Mortgage and cards", intro:"Balances, payments, rates and terms. Update a balance when you check it and the change since last time shows.", addLabel:"Add account", noun:"account",
+    { col:"borrowing", title:"Mortgage and cards", intro:"Balances, payments, rates and terms. The mortgage balance moves on by itself each month as an estimate. Tap Update balance when you check your app to set the real figure.", addLabel:"Add account", noun:"account",
       emptyTitle:"Nothing here yet", emptyText:"Add your mortgage, credit cards and any loans.",
       defaults:()=>({type:"card", asOf:H.iso(H.today())}),
       fields:[{name:"name",label:"Name",required:true,placeholder:"e.g. Halifax mortgage",full:true},{name:"type",label:"Type",type:"select",options:TYPES},{name:"lender",label:"Lender"},
         {name:"balance",label:"Balance (£)",type:"number",step:"0.01"},{name:"asOf",label:"Balance on",type:"date"},
         {name:"monthly",label:"Monthly payment (£)",type:"number",step:"0.01"},{name:"payDay",label:"Paid on day of month",type:"number",step:"1"},
-        {name:"rate",label:"Interest rate (%)",type:"number",step:"0.01"},{name:"limit",label:"Credit limit (£)",type:"number",step:"0.01"},
+        {name:"rate",label:"Interest rate (% a year)",type:"number",step:"0.01"},{name:"limit",label:"Credit limit (£)",type:"number",step:"0.01"},
         {name:"term",label:"Term left or end date",placeholder:"e.g. 27 years 3 months"},{name:"dealEnd",label:"Fixed rate or 0% deal ends",type:"date"},
         {name:"notes",label:"Notes",type:"textarea",full:true}],
       sort:(a,b)=>(Number(b.balance)||0)-(Number(a.balance)||0),
@@ -62,13 +69,14 @@ H.tool({
       row:(b)=>{
         const np=nextPay(b), last=H2(b)[H2(b).length-1], de=H.parse(b.dealEnd);
         let change=""; if(last&&b.balance!=null){ const diff=Number(b.balance)-Number(last.balance); if(Math.abs(diff)>=0.01) change=(diff<0?"down ":"up ")+H.money(Math.abs(diff))+" since "+(H.parse(last.date)?H.short(H.parse(last.date)):"last time"); }
+        const e=est(b);
         const used=b.limit?Math.min(100,Math.round((Number(b.balance)||0)/Number(b.limit)*100)):null;
-        const facts=[["Monthly",b.monthly!=null&&b.monthly!==""?H.money(b.monthly)+(np?" · next "+H.short(np):""):""],["Rate",b.rate!=null&&b.rate!==""?b.rate+"%":""],["Limit",b.limit?H.money(b.limit)+" · "+used+"% used":""],["Term left",b.term||""],["Deal ends",de?H.long(de):""],["Change",change]].filter(f=>f[1]);
+        const facts=[["Monthly",b.monthly!=null&&b.monthly!==""?H.money(b.monthly)+(np?" · next "+H.short(np):""):""],["Rate",b.rate!=null&&b.rate!==""?b.rate+"%":""],["Limit",b.limit?H.money(b.limit)+" · "+used+"% used":""],["Term left",b.term||""],["Deal ends",de?H.long(de):""],["Change",change],["Last checked",e?H.money(b.balance)+" on "+H.long(H.parse(b.asOf)):""],["Estimate",e?e.n+(e.n===1?" payment":" payments")+" since, at "+(b.rate||0)+"% interest":""]].filter(f=>f[1]);
         const bar=used!=null?'<div style="height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden"><div style="height:100%;width:'+used+'%;background:var(--copper)"></div></div>':"";
         return {initials:b.type==="mortgage"?"MG":b.type==="card"?"CC":(b.name||"?").slice(0,2), title:b.name,
           pill:'<span class="pill flat">'+H.esc(TN[b.type]||"Other")+'</span>'+(de&&H.days(de)<=90&&H.days(de)>=0?' <span class="pill soon">Deal ends soon</span>':''),
           sub:[b.lender, b.asOf&&H.parse(b.asOf)?"balance on "+H.long(H.parse(b.asOf)):""].filter(Boolean).join(" · "),
-          right:b.balance!=null&&b.balance!==""?H.money(b.balance):"", rightSub:"owed",
+          right:e?H.money(e.v):b.balance!=null&&b.balance!==""?H.money(b.balance):"", rightSub:e?"estimated":"owed",
           subHtml:bar+(facts.length?'<dl class="facts" style="margin-top:10px;font-size:13px">'+facts.map(f=>'<dt>'+f[0]+'</dt><dd>'+H.esc(f[1])+'</dd>').join("")+'</dl>':"")+(b.notes?'<div class="note">'+H.esc(b.notes)+'</div>':"")};
       } },
   ],
