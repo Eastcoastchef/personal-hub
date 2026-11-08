@@ -11,15 +11,21 @@
 // Optional binding: LOGIN_LIMITER (Workers rate limiting), see wrangler.toml.
 
 const enc = new TextEncoder();
+const PUBLIC_FILES = new Set(["/robots.txt", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/icon-maskable-512.png", "/apple-touch-icon.png"]);
 const COOKIE = "hub_session";
 const SESSION_DAYS = 14;
 const ISSUER = "Carl Jones Hub";
 
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runBackup(env));
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/robots.txt") return env.ASSETS.fetch(request);
+    // Not private: the browser fetches these to install the hub on a home screen.
+    if (PUBLIC_FILES.has(url.pathname)) return env.ASSETS.fetch(request);
 
     if (!env.HUB_PASSWORD || env.HUB_PASSWORD.length < 10) {
       return html(notReadyPage(), 503);
@@ -205,6 +211,14 @@ async function ensureSchema(db) {
 
 export async function handleApi(request, env, url) {
   if (!env.DB) return json({ error: "Database not connected" }, 503);
+  if (url.pathname === "/api/backup" && request.method === "GET") {
+    await ensureSchema(env.DB);
+    const body = JSON.stringify(await exportAll(env.DB), null, 1);
+    const day = new Date().toISOString().slice(0, 10);
+    const headers = new Headers({ "Content-Type": "application/json", "Content-Disposition": `attachment; filename="hub-backup-${day}.json"`, "Cache-Control": "no-store" });
+    addSecurityHeaders(headers);
+    return new Response(body, { headers });
+  }
   const parts = url.pathname.split("/").filter(Boolean); // ["api", col, id?]
   const col = parts[1];
   const id = parts[2];
@@ -247,6 +261,25 @@ export async function handleApi(request, env, url) {
   }
 
   return json({ error: "Not allowed" }, 405);
+}
+
+async function exportAll(db) {
+  const { results } = await db.prepare("SELECT id, col, data, created_at, updated_at FROM items ORDER BY col, created_at").all();
+  return { exported_at: new Date().toISOString(), count: results.length, items: results.map((r) => ({ ...r, data: safeParse(r.data) })) };
+}
+
+// Nightly backup to R2 (cron in wrangler.toml). Keeps the last 30 days.
+export async function runBackup(env) {
+  if (!env.DB || !env.BACKUPS) return "skipped";
+  await ensureSchema(env.DB);
+  const dump = await exportAll(env.DB);
+  const key = "backup-" + dump.exported_at.slice(0, 10) + ".json";
+  await env.BACKUPS.put(key, JSON.stringify(dump), { httpMetadata: { contentType: "application/json" } });
+  const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const list = await env.BACKUPS.list({ prefix: "backup-" });
+  const old = list.objects.map((o) => o.key).filter((k) => k.slice(7, 17) < cutoff);
+  if (old.length) await env.BACKUPS.delete(old);
+  return key;
 }
 
 function safeParse(t) { try { return JSON.parse(t); } catch { return null; } }
@@ -325,7 +358,7 @@ ol{margin:0;padding-left:20px;font-size:14px;line-height:1.6}
 #qr img,#qr canvas{display:block}
 `;
 
-const HEAD = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>Carl Jones Hub</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=DM+Sans:wght@400;600;700&display=swap"><style>${STYLE}</style></head><body><main class="box"><div class="top"><div class="crest">CJ</div><div><div class="name">CARL JONES</div><div class="tag">Personal Hub</div></div></div>`;
+const HEAD = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="icon" type="image/png" href="/icon-192.png"><meta name="theme-color" content="#13262b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="My Hub"><title>Carl Jones Hub</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=DM+Sans:wght@400;600;700&display=swap"><style>${STYLE}</style></head><body><main class="box"><div class="top"><div class="crest">CJ</div><div><div class="name">CARL JONES</div><div class="tag">Personal Hub</div></div></div>`;
 const FOOT = `</main></body></html>`;
 
 function esc(s) {

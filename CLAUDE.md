@@ -7,6 +7,8 @@ Live at https://personal-hub.carl-839.workers.dev/ . It deploys to Cloudflare Wo
 - Login: `worker.js` runs before every request (`run_worker_first`). Nothing in `public/` is served without a session cookie, which needs Carl's password (secret `HUB_PASSWORD`) and a 6-digit authenticator code (secret `TOTP_SECRET`). Sessions last 14 days, and changing either secret logs every device out. Login attempts are limited to 5 a minute per IP.
 - Never weaken the gate: don't serve files outside the worker check, don't turn off `run_worker_first`, and don't put secrets in the repo. Test login changes with Node before pushing (see the TOTP RFC 6238 vectors).
 - Private details are fine on the page because it sits behind the login.
+- Only the files in PUBLIC_FILES (worker.js) skip the login: robots.txt, the web app manifest and the icons, so the hub can be added to a phone home screen. Never add anything private to that list.
+- Backups: a cron (02:30 UTC) runs runBackup, which writes every item to R2 bucket `personal-hub-backups` as backup-YYYY-MM-DD.json and keeps 30 days. `/api/backup` downloads the same JSON when logged in.
 - This is personal only. Nothing from the Duke's Head, Baseline or Lenne Lodge repos belongs here except links to their live sites.
 - Plain, direct language. No em dashes.
 
