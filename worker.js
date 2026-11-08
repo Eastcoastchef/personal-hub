@@ -196,6 +196,7 @@ const COLLECTIONS = new Set([
   "cal_events",
   "cases", "case_log",
   "borrowing",
+  "mason_profile", "mason_meetings",
   "cars", "car_log",
 ]);
 const MAX_BODY = 20000;

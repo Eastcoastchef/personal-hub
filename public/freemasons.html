@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" href="/icon-192.png?v=2">
+<meta name="theme-color" content="#151a21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="My Hub">
+<title>Freemasons · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Freemasons</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MOPTS=MON.map((m,i)=>[String(i+1),m]);
+const num=v=>Number(v)||0;
+const perMeeting=p=>num(p.dining)+num(p.raffle)+num(p.alms)+num(p.game);
+const seasonCost=p=>num(p.subs)+perMeeting(p)*num(p.meetings);
+const inSeason=(p,idx)=>{ const a=num(p.firstMonth)-1, b=num(p.lastMonth)-1; return a<=b ? (idx>=a&&idx<=b) : (idx>=a||idx<=b); };
+function plan(p){
+  const start=H.parse(p.potAsOf), from=H.parse(p.potPaysFrom)||new Date(9e15), sStart=H.parse(p.savingStart)||new Date(9e15);
+  if(!start) return [];
+  const endY=(from.getTime()<9e15?from.getFullYear():start.getFullYear())+1, end=new Date(endY, num(p.lastMonth)-1||3, 28);
+  let bal=num(p.pot), y=start.getFullYear(), m=start.getMonth(), rows=[], g=0;
+  while(new Date(y,m,1)<=end && g++<40){
+    const first=new Date(y,m,1), pay=new Date(y,m,28);
+    const fromPot=first>=from;
+    let out=0, what=[];
+    if(fromPot && m===num(p.subsMonth)-1){ out+=num(p.subs)+num(p.subsRise); what.push("subs"); }
+    if(fromPot && inSeason(p,m)){ out+=perMeeting(p); what.push("meeting"); }
+    const inn=(pay>=sStart && pay>=start)?num(p.saving):0;
+    const low=bal-out; bal=low+inn;
+    rows.push({d:first,inn,out,what,bal,short:low<-0.005});
+    if(m===11){m=0;y++;}else m++;
+  }
+  return rows;
+}
+const money=v=>H.money(v).replace(".00","");
+H.tool({
+  stats: d => { const p=d.mason_profile[0]; if(!p) return [{k:"Season cost",v:"–",s:"Add your lodge details"},{k:"Spread monthly",v:"–",s:""},{k:"Pot",v:"–",s:""}];
+    return [
+      {k:"A season costs", v:H.money(seasonCost(p)), s:money(num(p.subs))+" subs + "+num(p.meetings)+" meetings at "+H.money(perMeeting(p))},
+      {k:"Spread over 12 months", v:H.money(seasonCost(p)/12), s:"Saving "+money(num(p.saving))+" a month"},
+      {k:"Stream pot", v:H.money(num(p.pot)), s:p.potAsOf?"on "+H.long(H.parse(p.potAsOf)):""},
+    ]; },
+  onRender: d => {
+    const p=d.mason_profile[0]; let el=document.getElementById("plan");
+    if(!el){ document.getElementById("stats").insertAdjacentHTML("afterend",'<div id="plan"></div>'); el=document.getElementById("plan"); }
+    if(!p){ el.innerHTML=""; return; }
+    const rows=plan(p), from=H.parse(p.potPaysFrom);
+    const lu=(p.lodgeUrl||"https://lenne-lodge-tool.pages.dev/");
+    const key=rows.filter(r=>r.what.includes("subs")||r.d.getMonth()===num(p.lastMonth)-1||r.short);
+    el.innerHTML='<div class="label">Stream pot plan</div><div class="card"><p class="meta" style="margin:0 0 10px">'+
+      (from?"You pay as you go until "+H.long(from)+". From then the pot pays subs and every meeting. ":"")+money(num(p.saving))+" goes in each month from "+(H.parse(p.savingStart)?MON[H.parse(p.savingStart).getMonth()]+" "+H.parse(p.savingStart).getFullYear():"–")+". Before any interest."+(num(p.subsRise)?" Allows "+money(num(p.subsRise))+" for a subs rise.":"")+"</p>"+
+      (key.length?'<dl class="facts">'+key.map(r=>'<dt>'+(r.what.includes("subs")?"After subs, ":"End of ")+MON[r.d.getMonth()]+" "+r.d.getFullYear()+'</dt><dd'+(r.short?' style="color:var(--red)"':'')+'>'+H.money(r.bal)+(r.short?" (short)":"")+'</dd>').join("")+'</dl>':"")+
+      '<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--copper);font-weight:600;font-size:14px">Month by month</summary><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;font-variant-numeric:tabular-nums">'+
+      '<tr style="color:var(--muted);text-align:left"><th style="padding:4px 0">Month</th><th>In</th><th>Out</th><th style="text-align:right">Pot</th></tr>'+
+      rows.map(r=>'<tr style="border-top:1px solid var(--line)"><td style="padding:5px 0">'+MON[r.d.getMonth()]+" "+String(r.d.getFullYear()).slice(2)+'</td><td>'+(r.inn?money(r.inn):"")+'</td><td>'+(r.out?H.money(r.out)+' <span class="meta" style="font-size:11px">'+r.what.join(", ")+'</span>':"")+'</td><td style="text-align:right'+(r.short?';color:var(--red)':'')+'">'+H.money(r.bal)+'</td></tr>').join("")+
+      '</table></div></details></div>'+
+      '<a href="'+H.esc(lu)+'" target="_blank" rel="noopener" class="card" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;text-decoration:none;color:var(--ink)"><span><b>Lenne Lodge tool</b><span class="meta" style="display:block">The lodge\'s own app: calendar and more</span></span><span style="color:var(--copper);font-size:18px">↗</span></a>';
+  },
+  sections: [
+    { col:"mason_profile", title:"Lodge and costs", intro:"Your lodge, what each meeting costs, and the savings plan. Edit when prices change and the plan updates.", addLabel:"Add lodge", noun:"lodge details",
+      emptyTitle:"No lodge details yet", emptyText:"Add your lodge, subs and meeting costs.",
+      defaults:()=>({meetings:7,firstMonth:"10",lastMonth:"4",subsMonth:"10"}),
+      fields:[{name:"lodge",label:"Lodge",required:true,full:true},{name:"subs",label:"Yearly subs (£)",type:"number",step:"0.01"},{name:"subsMonth",label:"Subs paid in",type:"select",options:MOPTS},{name:"subsRise",label:"Allow for subs rise in the plan (£)",type:"number",step:"0.01"},
+        {name:"dining",label:"Dining fee (£)",type:"number",step:"0.01"},{name:"raffle",label:"Raffle (£)",type:"number",step:"0.01"},{name:"alms",label:"Alms (£)",type:"number",step:"0.01"},{name:"game",label:"Game (£)",type:"number",step:"0.01"},
+        {name:"meetings",label:"Meetings a season",type:"number",step:"1"},{name:"firstMonth",label:"Season starts",type:"select",options:MOPTS},{name:"lastMonth",label:"Season ends",type:"select",options:MOPTS},
+        {name:"saving",label:"Saved each month (£)",type:"number",step:"0.01"},{name:"savingStart",label:"Saving starts",type:"date"},
+        {name:"pot",label:"Pot balance (£)",type:"number",step:"0.01"},{name:"potAsOf",label:"Pot balance on",type:"date"},
+        {name:"potPaysFrom",label:"Pot pays costs from",type:"date"},{name:"lodgeUrl",label:"Lodge app link",full:true},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      actions:[{label:"Update pot", run: async (p, ctx) => new Promise(res=>{ H.form({title:"Update Stream pot", submitLabel:"Save",
+          fields:[{name:"pot",label:"Pot balance (£)",type:"number",step:"0.01",required:true},{name:"potAsOf",label:"Balance on",type:"date",required:true,value:H.iso(H.today())}],
+          onSubmit: async v=>{ await ctx.save("mason_profile", p, v); H.toast("Pot updated"); ctx.render(); res(); } }); })}],
+      row:p=>({initials:"FM", title:p.lodge||"Lodge", sub:"Subs "+H.money(num(p.subs))+" in "+(MON[num(p.subsMonth)-1]||"–")+" · "+num(p.meetings)+" meetings, "+(MON[num(p.firstMonth)-1]||"")+" to "+(MON[num(p.lastMonth)-1]||""),
+        right:H.money(perMeeting(p)), rightSub:"a meeting",
+        subHtml:'<dl class="facts" style="margin-top:10px;font-size:13px"><dt>Dining</dt><dd>'+H.money(num(p.dining))+'</dd><dt>Raffle</dt><dd>'+H.money(num(p.raffle))+'</dd><dt>Alms</dt><dd>'+H.money(num(p.alms))+'</dd><dt>Game</dt><dd>'+H.money(num(p.game))+'</dd></dl>'+(p.notes?'<div class="note">'+H.esc(p.notes)+'</div>':"")}) },
+    { col:"mason_meetings", title:"Meetings", intro:"Meeting dates and anything to remember. Dates in the next two weeks show on the front page.", addLabel:"Add meeting", noun:"meeting",
+      emptyTitle:"No meetings added", emptyText:"Add this season's dates from the lodge summons or the Lenne Lodge tool.",
+      defaults:()=>({kind:"regular"}),
+      fields:[{name:"date",label:"Date",type:"date",required:true},{name:"time",label:"Time",type:"time"},{name:"kind",label:"Type",type:"select",options:[["regular","Regular meeting"],["installation","Installation"],["ladies","Ladies night"],["lodge_of_instruction","Lodge of Instruction"],["other","Other"]]},{name:"dining",label:"Dining",type:"checkbox"},{name:"notes",label:"Notes (degree, regalia, who's going)",type:"textarea",full:true}],
+      sort:(a,b)=>{ const da=H.parse(a.date), db=H.parse(b.date), pa=da<H.today(), pb=db<H.today(); if(pa!==pb) return pa?1:-1; return pa?db-da:da-db; },
+      row:m=>{ const d=H.parse(m.date), K={regular:"Regular meeting",installation:"Installation",ladies:"Ladies night",lodge_of_instruction:"Lodge of Instruction",other:"Meeting"};
+        return {date:d&&H.days(d)>=0?d:undefined, dayBadge:d&&H.days(d)<0?[d.getDate(),MON[d.getMonth()]]:undefined, title:K[m.kind]||"Meeting", pill:m.dining?'<span class="pill flat">Dining</span>':"", sub:[d?H.long(d):"",m.time].filter(Boolean).join(" · "), subHtml:m.notes?'<div class="note">'+H.esc(m.notes)+'</div>':""}; } },
+  ],
+});
+})();
+</script>
+</body>
+</html>
