@@ -11,6 +11,7 @@ Live at https://personal-hub.carl-839.workers.dev/ . It deploys to Cloudflare Wo
 - Backups: a cron (02:30 UTC) runs runBackup, which writes every item to R2 bucket `personal-hub-backups` as backup-YYYY-MM-DD.json and keeps 30 days. `/api/backup` downloads the same JSON when logged in.
 - This is personal only. Nothing from the Duke's Head, Baseline or Lenne Lodge repos belongs here except links to their live sites.
 - Plain, direct language. No em dashes.
+- Look (8 Nov 2026): dark dashboard, amber accent (#f2a93b), Saira headings and Inter body, tokens in tools.css. Deliberately unlike the work hubs (no teal and copper). No money figures on the front page; money stays in Bills. hub.js adds the floating bottom menu to every page.
 
 ## Tools and data
 - Pages: `bills.html`, `renewals.html`, `dog.html` (hand-built), and `home.html`, `health.html`, `travel.html`, `calendar.html`, `disputes.html` (built from section configs by `tool-engine.js`). All share `tools.css` and `hub.js`. `index.html` pulls due items from every list into Coming up.

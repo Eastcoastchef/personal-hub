@@ -332,23 +332,22 @@ function html(body, status) {
 // ---------- Pages ----------
 
 const STYLE = `
-:root{--head:#13262b;--head-mid:#1d3a40;--copper:#c98a5a;--copper-light:#e8b48a;--bg:#f2f4f3;--paper:#fff;--ink:#172022;--muted:#5f6b6d;--line:#dde3e2;--red:#b23a2b;--redbg:#fcebe8}
-@media (prefers-color-scheme:dark){:root{--bg:#0d1517;--paper:#152024;--ink:#e6edec;--muted:#93a3a5;--line:#24343a;--red:#f08a7a;--redbg:#3a1a16;color-scheme:dark}}
+:root{--head:#0f1217;--head-mid:#232a34;--copper:#f2a93b;--copper-light:#f6c271;--bg:#12161c;--paper:#1a2028;--ink:#eef1f4;--muted:#8a95a3;--line:#2a313b;--red:#ff7a6b;--redbg:rgba(239,91,76,.14);color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;display:grid;place-items:center;min-height:100vh;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
-.box{width:100%;max-width:380px;background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(19,38,43,.12)}
-.top{background:var(--head);padding:22px 24px;display:flex;align-items:center;gap:14px;background-image:radial-gradient(ellipse at 10% 30%,rgba(201,138,90,.16),transparent 60%)}
-.crest{width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,138,90,.45);background:rgba(201,138,90,.12);display:grid;place-items:center;font-family:Sora,sans-serif;font-weight:700;color:var(--copper-light)}
-.name{font-family:Sora,sans-serif;font-weight:700;color:#fff;letter-spacing:.3px}
-.tag{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px}
+body{background:radial-gradient(120% 60% at 50% 0%,#26303c 0%,#151a21 55%,#0f1217 100%) fixed,#0f1217;color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;display:grid;place-items:center;min-height:100vh;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.box{width:100%;max-width:380px;background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.top{background:var(--head);padding:22px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line)}
+.crest{width:44px;height:44px;border-radius:50%;border:2px solid var(--copper);background:var(--head-mid);display:grid;place-items:center;font-family:Saira,sans-serif;font-weight:700;color:var(--ink)}
+.name{font-family:Saira,sans-serif;font-weight:700;color:#fff;letter-spacing:.3px}
+.tag{font-size:11px;color:var(--copper);margin-top:2px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
 form,.body{padding:24px;display:grid;gap:14px}
 label{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
 input{font:inherit;font-size:17px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
 input:focus{outline:none;border-color:var(--copper)}
 #code{letter-spacing:6px;font-variant-numeric:tabular-nums}
-button{font:inherit;font-weight:700;font-size:16px;padding:13px;border:0;border-radius:10px;background:var(--head);color:#fff;cursor:pointer}
-button:hover{background:var(--head-mid)}
+button{font:inherit;font-weight:700;font-size:16px;padding:13px;border:0;border-radius:10px;background:var(--copper);color:#14171c;cursor:pointer}
+button:hover{background:var(--copper-light)}
 button:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
 .err{background:var(--redbg);color:var(--red);border-radius:8px;padding:10px 12px;font-size:14px}
 p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
@@ -358,7 +357,7 @@ ol{margin:0;padding-left:20px;font-size:14px;line-height:1.6}
 #qr img,#qr canvas{display:block}
 `;
 
-const HEAD = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="icon" type="image/png" href="/icon-192.png"><meta name="theme-color" content="#13262b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="My Hub"><title>Carl Jones Hub</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=DM+Sans:wght@400;600;700&display=swap"><style>${STYLE}</style></head><body><main class="box"><div class="top"><div class="crest">CJ</div><div><div class="name">CARL JONES</div><div class="tag">Personal Hub</div></div></div>`;
+const HEAD = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="icon" type="image/png" href="/icon-192.png"><meta name="theme-color" content="#151a21"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="My Hub"><title>Carl Jones Hub</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@700&family=Inter:wght@400;600;700&display=swap"><style>${STYLE}</style></head><body><main class="box"><div class="top"><div class="crest">CJ</div><div><div class="name">CARL JONES</div><div class="tag">Personal Hub</div></div></div>`;
 const FOOT = `</main></body></html>`;
 
 function esc(s) {

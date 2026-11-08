@@ -139,5 +139,27 @@
     if (first) first.focus();
   };
 
+  // ---- Floating bottom menu on every page ----
+  function addNav() {
+    if (document.querySelector(".fnav")) return;
+    const norm = (x) => (x.replace(/\/$/, "/index").replace(/\.html$/, "") || "/index");
+    const p = norm(location.pathname);
+    const I = {
+      hub: '<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/>',
+      cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+      money: '<path d="M16 6.5a4 4 0 0 0-7 2.6V19h8"/><path d="M6 13h7M6 19h3"/>',
+      car: '<path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/>',
+      all: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    };
+    const items = [["/index.html", "hub", "Hub"], ["/calendar.html", "cal", "Calendar"], ["/bills.html", "money", "Money"], ["/cars.html", "car", "Cars"], ["/index.html#tools", "all", "All tools"]];
+    const n = document.createElement("nav");
+    n.className = "fnav";
+    n.setAttribute("aria-label", "Main");
+    n.innerHTML = items.map(([href, ic, label], i) =>
+      '<a href="' + (href === "/index.html" ? "/" : href.replace("/index.html", "/")) + '"' + (p === norm(href) && i < 4 ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24" aria-hidden="true">' + I[ic] + "</svg>" + label + "</a>").join("");
+    document.body.appendChild(n);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addNav); else addNav();
+
   window.Hub = H;
 })();
