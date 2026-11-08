@@ -78,6 +78,7 @@
 .app .lb{font-size:12px;font-weight:500;color:#c9d0d8;text-align:center}
 .app .bd{position:absolute;top:-4px;left:calc(50% + 18px);min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--red2);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;border:2px solid #151a21}
 .workp{display:grid;gap:6px;padding:10px}
+.workp[hidden]{display:none}
 .workp a{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:12px;color:var(--ink);text-decoration:none;font-weight:600;font-size:14px}
 .workp a:hover{background:var(--glass)}
 .workp a span{color:var(--copper)}
@@ -203,7 +204,7 @@
 
   // Work hubs panel
   var wb = document.getElementById("workBtn"), wp = document.getElementById("workp");
-  wb.addEventListener("click", function(){ wp.hidden = !wp.hidden; wb.setAttribute("aria-expanded", String(!wp.hidden)); });
+  wb.addEventListener("click", function(){ wp.hidden = !wp.hidden; wb.setAttribute("aria-expanded", String(!wp.hidden)); if (!wp.hidden) wp.scrollIntoView({behavior:"smooth", block:"nearest"}); });
 
   var items = fixed.slice(), D = {}, carsList = [];
   function every(t){ var l = H.parse(t.last); return l ? H.addDays(l, Number(t.every) || 30) : null; }
