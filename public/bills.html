@@ -17,6 +17,7 @@
 </div><div class="rule"></div></div>
 
 <main class="gut">
+  <div class="chips" id="who" role="group" aria-label="Whose bills" style="margin-bottom:14px"><button class="chip" data-who="carl" aria-pressed="true">Carl</button><button class="chip" data-who="caley" aria-pressed="false">Caley</button></div>
   <div class="stats">
     <div class="stat"><div class="k">Bills per month</div><div class="v" id="perMonth">£0.00</div><div class="s" id="perYear">£0.00 a year</div></div>
     <div class="stat"><div class="k">Due in next 7 days</div><div class="v" id="week">£0.00</div><div class="s" id="weekCount">Nothing due</div></div>
@@ -37,10 +38,13 @@
   const H = Hub;
   const CATS = [["home","Home"],["utilities","Utilities"],["insurance","Insurance"],["car","Car"],["phone","Phone and internet"],["subscriptions","Subscriptions"],["family","Family"],["debt","Loans and cards"],["other","Other"]];
   const CATNAME = Object.fromEntries(CATS);
-  let bills = [], filter = "all";
+  let bills = [], filter = "all", who = "carl";
+  try { who = localStorage.getItem("billsWho") || "carl"; } catch (e) {}
+  const mine = (b) => (b.who || "carl") === who;
 
   const fields = [
     {name:"name", label:"Bill", required:true, placeholder:"e.g. Council tax", full:true},
+    {name:"who", label:"Whose bill", type:"select", options:[["carl","Carl"],["caley","Caley"]]},
     {name:"amount", label:"Amount (£)", type:"number", step:"0.01", required:true},
     {name:"freq", label:"How often", type:"select", options:Object.entries(H.FREQ).map(([k,v])=>[k,v.label]), value:"monthly"},
     {name:"due", label:"Next payment date", type:"date", required:true},
@@ -51,7 +55,8 @@
   ];
 
   function render(){
-    const rows = bills.map(b => ({...b, next: H.nextDue(b.due, b.freq)})).filter(b => b.next).sort((a,b)=>a.next-b.next);
+    document.querySelectorAll("[data-who]").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.who === who)));
+    const rows = bills.filter(mine).map(b => ({...b, next: H.nextDue(b.due, b.freq)})).filter(b => b.next).sort((a,b)=>a.next-b.next);
     const perMonth = rows.reduce((s,b)=>s + (Number(b.amount)||0) * (H.FREQ[b.freq]||H.FREQ.monthly).perMonth, 0);
     document.getElementById("perMonth").textContent = H.money(perMonth);
     document.getElementById("perYear").textContent = H.money(perMonth*12) + " a year";
@@ -75,8 +80,8 @@
 
     const shown = rows.filter(b => filter==="all" || (b.category||"other")===filter);
     const out = document.getElementById("out");
-    if (!bills.length){
-      out.innerHTML = '<div class="empty"><b>No bills yet</b>Add your direct debits and regular payments. The totals above work themselves out.<br><button class="copper" data-act="add">+ Add your first bill</button></div>';
+    if (!rows.length){
+      out.innerHTML = '<div class="empty"><b>No bills yet</b>Add ' + (who==="caley"?"Caley\'s":"your") + ' direct debits and regular payments. The totals above work themselves out.<br><button class="copper" data-act="add">+ Add your first bill</button></div>';
       return;
     }
     out.innerHTML = '<div class="list">' + shown.map(b => {
@@ -92,7 +97,7 @@
   function openForm(bill){
     H.form({
       title: bill ? "Edit bill" : "Add a bill",
-      fields, values: bill ? {...bill, due: H.iso(H.nextDue(bill.due, bill.freq))} : {due: H.iso(H.today())},
+      fields, values: bill ? {...bill, due: H.iso(H.nextDue(bill.due, bill.freq))} : {due: H.iso(H.today()), who},
       onSubmit: async (data) => {
         if (bill){ const saved = await H.update("bills", bill.id, data); bills = bills.map(b => b.id===bill.id ? saved : b); H.toast("Bill saved"); }
         else { bills.push(await H.create("bills", data)); H.toast("Bill added"); }
@@ -103,11 +108,12 @@
   }
 
   document.addEventListener("click", e => {
-    const el = e.target.closest("[data-edit],[data-cat],[data-act],#add");
+    const el = e.target.closest("[data-edit],[data-cat],[data-act],[data-who],#add");
     if (!el) return;
     if (el.id === "add" || el.dataset.act === "add") openForm(null);
     else if (el.dataset.edit) openForm(bills.find(b=>b.id===el.dataset.edit));
     else if (el.dataset.cat) { filter = el.dataset.cat; render(); }
+    else if (el.dataset.who) { who = el.dataset.who; filter = "all"; try { localStorage.setItem("billsWho", who); } catch (e) {} render(); }
   });
 
   H.list("bills").then(r => { bills = r; render(); }).catch(err => {

@@ -162,9 +162,9 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
 
   <div class="label">Family</div>
   <div class="tools">
-    <div class="tool soon"><div class="ico"><svg><use href="#i-user"/></svg></div><div><div class="tname">Ben</div><div class="tdesc">Learner driver, lessons and test</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-gift"/></svg></div><div><div class="tname">Birthdays</div><div class="tdesc">Dates and gift ideas</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-cal"/></svg></div><div><div class="tname">Family Calendar</div><div class="tdesc">Shifts, school, plans</div></div></div>
+    <div class="tool kid" data-dob="2009-11-17"><div class="ico"><svg><use href="#i-user"/></svg></div><div><div class="tname">Jessica</div><div class="tdesc">Jessica Faith Jones · <span class="age"></span></div></div></div>
+    <div class="tool kid" data-dob="2008-03-31"><div class="ico"><svg><use href="#i-user"/></svg></div><div><div class="tname">Ben</div><div class="tdesc">Benjamyn Thomas Jones · <span class="age"></span> · learner driver</div></div></div>
+    <div class="tool kid" data-dob="2002-04-30"><div class="ico"><svg><use href="#i-user"/></svg></div><div><div class="tname">Bryony</div><div class="tdesc">Bryony Dawn Stratton · <span class="age"></span></div></div></div>
   </div>
 
   <div class="label">Money &amp; Insurance</div>
@@ -205,10 +205,19 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   document.getElementById("day").textContent=days[today.getDay()];
   document.getElementById("date").textContent=today.getDate()+" "+months[today.getMonth()]+" "+today.getFullYear();
   function next(m,d){var x=new Date(today.getFullYear(),m,d);if(x<today)x.setFullYear(x.getFullYear()+1);return x}
+  function turns(y,m,d){return next(m,d).getFullYear()-y}
+  document.querySelectorAll(".kid").forEach(function(k){
+    var p=k.getAttribute("data-dob").split("-").map(Number), b=new Date(p[0],p[1]-1,p[2]);
+    var a=today.getFullYear()-b.getFullYear(); if(today<new Date(today.getFullYear(),b.getMonth(),b.getDate()))a--;
+    var nb=next(b.getMonth(),b.getDate()), n=Math.round((nb-today)/864e5);
+    k.querySelector(".age").textContent=a+(n===0?", birthday today":", birthday "+(n<=30?"in "+n+(n===1?" day":" days"):nb.getDate()+" "+months[nb.getMonth()].slice(0,3)));
+  });
   var fixed=[
     {t:"ICB hold ends",s:"Sterling policy, decide pay or settle",d:new Date(2026,11,16),p:"hold",pl:"Deadline"},
     {t:"Christmas Day",s:"Busiest week at work",d:next(11,25),p:"ok",pl:"Holiday"},
-    {t:"Ben's birthday",s:"31 March",d:next(2,31),p:"ok",pl:"Family"}
+    {t:"Jessica's birthday",s:"turns "+turns(2009,10,17),d:next(10,17),p:"ok",pl:"Birthday"},
+    {t:"Ben's birthday",s:"turns "+turns(2008,2,31),d:next(2,31),p:"ok",pl:"Birthday"},
+    {t:"Bryony's birthday",s:"turns "+turns(2002,3,30),d:next(3,30),p:"ok",pl:"Birthday"}
   ];
   var box=document.getElementById("dates");
   function draw(list){
@@ -230,10 +239,10 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
     var extra=[], bills=res[0], ren=res[1], tasks=res[2], dog=res[3][0];
     var perMonth=0;
     bills.forEach(function(b){
-      var f=H.FREQ[b.freq]||H.FREQ.monthly; perMonth+=(Number(b.amount)||0)*f.perMonth;
-      var d=H.nextDue(b.due,b.freq); if(d&&H.days(d)<=7)extra.push({t:b.name,s:H.money(b.amount)+" bill",d:d,p:"ok",pl:"Bill",href:"/bills.html"});
+      var f=H.FREQ[b.freq]||H.FREQ.monthly; if((b.who||"carl")==="carl")perMonth+=(Number(b.amount)||0)*f.perMonth;
+      var d=H.nextDue(b.due,b.freq); if(d&&H.days(d)<=7)extra.push({t:b.name,s:H.money(b.amount)+((b.who||"carl")==="caley"?" bill (Caley)":" bill"),d:d,p:"ok",pl:"Bill",href:"/bills.html"});
     });
-    if(bills.length)document.getElementById("billsDesc").textContent=H.money(perMonth)+" a month, "+bills.length+" bills";
+    if(bills.length)document.getElementById("billsDesc").textContent="Carl: "+H.money(perMonth)+" a month · Carl and Caley kept separate";
     var due=0;
     ren.forEach(function(r){
       var d=H.parse(r.date); if(!d)return; var n=H.days(d), warn=Number(r.remind)||30;
