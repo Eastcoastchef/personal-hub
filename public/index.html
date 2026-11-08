@@ -110,6 +110,7 @@
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
   <symbol id="i-cv" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="9" r="2.5"/><path d="M8.5 16c.8-1.8 2-2.5 3.5-2.5s2.7.7 3.5 2.5"/></symbol>
   <symbol id="i-work" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 12h18"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4"/><path d="M5 18h14"/></symbol>
   <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M4 13h16M12 9c-2-4-6-3-4 0M12 9c2-4 6-3 4 0"/></symbol>
 </svg>
@@ -157,7 +158,7 @@
       <a class="app" href="/disputes.html" data-b="cases"><span class="sq"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-file"/></svg></span><span class="lb">Disputes</span></a>
       <a class="app" href="https://claude.ai/artifact/HieQXJwfcQME8kwsBZi7DS" target="_blank" rel="noopener"><span class="sq"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-cv"/></svg></span><span class="lb">My CV</span></a>
       <button class="app" type="button" id="workBtn" aria-expanded="false" aria-controls="workp"><span class="sq"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-work"/></svg></span><span class="lb">Work hubs</span></button>
-      <a class="app" href="/api/backup"><span class="sq"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></span><span class="lb">Backup</span></a>
+      <a class="app" href="/borrowing.html" data-b="borrowing"><span class="sq"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-bank"/></svg></span><span class="lb">Mortgage</span></a>
     </div>
     <div class="workp glass" id="workp" hidden>
       <a href="https://dukes-head-toolkit.chef-b23.workers.dev/" target="_blank" rel="noopener">Duke's Head toolkit <span>↗</span></a>
@@ -289,7 +290,7 @@
   });
 
   render();
-  var cols = ["cars","bills","renewals","dog_tasks","dog_profile","home_tasks","home_suppliers","health_appts","health_meds","travel_trips","travel_docs","cal_events","cases"];
+  var cols = ["borrowing","cars","bills","renewals","dog_tasks","dog_profile","home_tasks","home_suppliers","health_appts","health_meds","travel_trips","travel_docs","cal_events","cases"];
   Promise.all(cols.map(function(c){ return H.list(c).catch(function(){ return []; }); })).then(function(res){
     cols.forEach(function(c,i){ D[c] = res[i]; });
     var add = function(o){ if (o.d) { o.late = H.days(o.d) < 0; items.push(o); } };
@@ -307,6 +308,7 @@
     D.travel_trips.forEach(function(t){ var d = H.parse(t.start); if (d && H.days(d) >= 0 && H.days(d) <= 60) add({t:t.name, s:"trip", d:d, icon:"i-plane", href:"/travel.html", tool:"travel"}); });
     D.travel_docs.forEach(function(x){ var d = H.parse(x.expiry); if (d && H.days(d) <= (Number(x.remind)||180)) add({t:"Renew "+(x.type==="passport"?"passport":x.type||"document"), s:(H.PERSON&&H.PERSON[x.who])||x.who||"", d:d, icon:"i-plane", href:"/travel.html", tool:"travel"}); });
     D.cal_events.forEach(function(e){ var d = H.parse(e.date); if (!d) return; if (e.yearly){ d = new Date(today.getFullYear(), d.getMonth(), d.getDate()); if (d < today) d.setFullYear(d.getFullYear()+1); } if (H.days(d) >= 0 && H.days(d) <= 60) add({t:e.title, s:e.time?"at "+e.time:"diary", d:d, icon:"i-cal", href:"/calendar.html"}); });
+    D.borrowing.forEach(function(b){ var d = H.parse(b.dealEnd); if (d && H.days(d) <= 90) add({t:b.name+" deal ends", s:"look at what it moves to", d:d, icon:"i-bank", href:"/borrowing.html", tool:"borrowing"}); });
     D.cases.forEach(function(c){ if (["settled","closed"].indexOf(c.status) > -1) return; var d = H.parse(c.deadline); if (d && H.days(d) <= 30 && !/ICB hold/i.test(c.deadlineWhat||"")) add({t:c.title, s:c.deadlineWhat||"deadline", d:d, icon:"i-file", href:"/disputes.html", tool:"cases"}); });
     // Late items from fixed/past dates should not linger: only tool items can be late
     items = items.filter(function(i){ return H.days(i.d) >= 0 || i.href !== "/calendar.html"; });

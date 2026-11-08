@@ -14,7 +14,7 @@ Live at https://personal-hub.carl-839.workers.dev/ . It deploys to Cloudflare Wo
 - Look (8 Nov 2026): dark dashboard, amber accent (#f2a93b), Saira headings and Inter body, tokens in tools.css. Deliberately unlike the work hubs (no teal and copper). No money figures on the front page; money stays in Bills. hub.js adds the floating bottom menu to every page.
 
 ## Tools and data
-- Pages: `bills.html`, `renewals.html`, `dog.html` (hand-built), and `home.html`, `health.html`, `travel.html`, `calendar.html`, `disputes.html` (built from section configs by `tool-engine.js`). All share `tools.css` and `hub.js`. `index.html` pulls due items from every list into Coming up.
+- Pages: `bills.html`, `renewals.html`, `dog.html` (hand-built), and `borrowing.html` (mortgage and cards, list `borrowing`), `home.html`, `health.html`, `travel.html`, `calendar.html`, `disputes.html` (built from section configs by `tool-engine.js`). All share `tools.css` and `hub.js`. `index.html` pulls due items from every list into Coming up.
 - To add a tool: add its lists to COLLECTIONS in worker.js, write a page that calls `Hub.tool({sections, stats})`, link its tile in index.html, and add its due items to the Coming up loader.
 - Data lives in D1 database `personal-hub` (binding `DB`, id in wrangler.toml), one table `items` (id, col, data JSON, created_at, updated_at). The worker creates it if missing.
 - API: `/api/<list>` GET/POST and `/api/<list>/<id>` PUT/DELETE, only with a valid session. Writes need the header `X-Hub: 1`. Lists are in COLLECTIONS in worker.js. A new list must be added to COLLECTIONS in worker.js.

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" href="/icon-192.png?v=2">
+<meta name="theme-color" content="#151a21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="My Hub">
+<title>Mortgage and Cards · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Mortgage and Cards</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+const TYPES=[["mortgage","Mortgage"],["card","Credit card"],["loan","Loan"],["finance","Car finance"],["other","Other"]];
+const TN=Object.fromEntries(TYPES);
+const nextPay=b=>{ const day=Number(b.payDay); if(!day) return null; const t=H.today(); let d=new Date(t.getFullYear(),t.getMonth(),Math.min(day,new Date(t.getFullYear(),t.getMonth()+1,0).getDate())); if(d<t) d=new Date(t.getFullYear(),t.getMonth()+1,Math.min(day,new Date(t.getFullYear(),t.getMonth()+2,0).getDate())); return d; };
+const H2=b=>(b.history||[]);
+H.tool({
+  stats: d => {
+    const all=d.borrowing;
+    const owed=all.reduce((s,b)=>s+(Number(b.balance)||0),0);
+    const monthly=all.reduce((s,b)=>s+(Number(b.monthly)||0),0);
+    const nx=all.map(b=>({b,d:nextPay(b)})).filter(x=>x.d).sort((a,b)=>a.d-b.d)[0];
+    return [
+      {k:"Total owed", v:H.money(owed), s:all.length+(all.length===1?" account":" accounts")},
+      {k:"Paid each month", v:H.money(monthly), s:"Regular payments"},
+      {k:"Next payment", v:nx?H.short(nx.d):"–", s:nx?nx.b.name:"No dates set"},
+    ];
+  },
+  sections: [
+    { col:"borrowing", title:"Mortgage and cards", intro:"Balances, payments, rates and terms. Update a balance when you check it and the change since last time shows.", addLabel:"Add account", noun:"account",
+      emptyTitle:"Nothing here yet", emptyText:"Add your mortgage, credit cards and any loans.",
+      defaults:()=>({type:"card", asOf:H.iso(H.today())}),
+      fields:[{name:"name",label:"Name",required:true,placeholder:"e.g. Halifax mortgage",full:true},{name:"type",label:"Type",type:"select",options:TYPES},{name:"lender",label:"Lender"},
+        {name:"balance",label:"Balance (£)",type:"number",step:"0.01"},{name:"asOf",label:"Balance on",type:"date"},
+        {name:"monthly",label:"Monthly payment (£)",type:"number",step:"0.01"},{name:"payDay",label:"Paid on day of month",type:"number",step:"1"},
+        {name:"rate",label:"Interest rate (%)",type:"number",step:"0.01"},{name:"limit",label:"Credit limit (£)",type:"number",step:"0.01"},
+        {name:"term",label:"Term left or end date",placeholder:"e.g. 27 years 3 months"},{name:"dealEnd",label:"Fixed rate or 0% deal ends",type:"date"},
+        {name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>(Number(b.balance)||0)-(Number(a.balance)||0),
+      actions:[{label:"Update balance", run: async (b, ctx) => new Promise((res,rej)=>{ H.form({title:"Update balance: "+b.name, submitLabel:"Save",
+          fields:[{name:"balance",label:"New balance (£)",type:"number",step:"0.01",required:true},{name:"asOf",label:"Balance on",type:"date",required:true,value:H.iso(H.today())}],
+          onSubmit: async (v)=>{ const history=H2(b).concat(b.balance!=null&&b.balance!==""?[{date:b.asOf||"",balance:b.balance}]:[]).slice(-24); await ctx.save("borrowing", b, {...v, history}); H.toast("Balance saved"); ctx.render(); res(); } }); })}],
+      row:(b)=>{
+        const np=nextPay(b), last=H2(b)[H2(b).length-1], de=H.parse(b.dealEnd);
+        let change=""; if(last&&b.balance!=null){ const diff=Number(b.balance)-Number(last.balance); if(Math.abs(diff)>=0.01) change=(diff<0?"down ":"up ")+H.money(Math.abs(diff))+" since "+(H.parse(last.date)?H.short(H.parse(last.date)):"last time"); }
+        const used=b.limit?Math.min(100,Math.round((Number(b.balance)||0)/Number(b.limit)*100)):null;
+        const facts=[["Monthly",b.monthly!=null&&b.monthly!==""?H.money(b.monthly)+(np?" · next "+H.short(np):""):""],["Rate",b.rate!=null&&b.rate!==""?b.rate+"%":""],["Limit",b.limit?H.money(b.limit)+" · "+used+"% used":""],["Term left",b.term||""],["Deal ends",de?H.long(de):""],["Change",change]].filter(f=>f[1]);
+        const bar=used!=null?'<div style="height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden"><div style="height:100%;width:'+used+'%;background:var(--copper)"></div></div>':"";
+        return {initials:b.type==="mortgage"?"MG":b.type==="card"?"CC":(b.name||"?").slice(0,2), title:b.name,
+          pill:'<span class="pill flat">'+H.esc(TN[b.type]||"Other")+'</span>'+(de&&H.days(de)<=90&&H.days(de)>=0?' <span class="pill soon">Deal ends soon</span>':''),
+          sub:[b.lender, b.asOf&&H.parse(b.asOf)?"balance on "+H.long(H.parse(b.asOf)):""].filter(Boolean).join(" · "),
+          right:b.balance!=null&&b.balance!==""?H.money(b.balance):"", rightSub:"owed",
+          subHtml:bar+(facts.length?'<dl class="facts" style="margin-top:10px;font-size:13px">'+facts.map(f=>'<dt>'+f[0]+'</dt><dd>'+H.esc(f[1])+'</dd>').join("")+'</dl>':"")+(b.notes?'<div class="note">'+H.esc(b.notes)+'</div>':"")};
+      } },
+  ],
+});
+})();
+</script>
+</body>
+</html>
