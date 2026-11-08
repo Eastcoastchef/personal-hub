@@ -60,6 +60,8 @@ main{padding-block:26px 64px}
 .pill{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap}
 .pill.hold{background:var(--amberbg);color:var(--amber)}
 .pill.ok{background:var(--greenbg);color:var(--green)}
+.pill.late{background:var(--redbg);color:var(--red)}
+.pill.soon{background:var(--amberbg);color:var(--amber)}
 .case{border-left:3px solid var(--amber)}
 .case dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:4px 0 12px;font-size:13.5px}
 .case dt{color:var(--muted)}
@@ -167,8 +169,8 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
 
   <div class="label">Money &amp; Insurance</div>
   <div class="tools">
-    <div class="tool soon"><div class="ico"><svg><use href="#i-pound"/></svg></div><div><div class="tname">Bills &amp; Budget</div><div class="tdesc">Direct debits, monthly spend</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-shield"/></svg></div><div><div class="tname">Policies</div><div class="tdesc">Home, car, life, pet</div></div></div>
+    <a class="tool" href="/bills.html"><div class="ico"><svg><use href="#i-pound"/></svg></div><div><div class="tname">Bills &amp; Budget</div><div class="tdesc" id="billsDesc">Direct debits, monthly spend</div></div></a>
+    <a class="tool" href="/renewals.html"><div class="ico"><svg><use href="#i-shield"/></svg></div><div><div class="tname">Renewals</div><div class="tdesc" id="renDesc">Insurance, MOT, tax, licences</div></div></a>
     <div class="tool soon"><div class="ico"><svg><use href="#i-file"/></svg></div><div><div class="tname">Disputes &amp; Claims</div><div class="tdesc">Letters, refs, deadlines</div></div></div>
   </div>
 
@@ -176,14 +178,14 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   <div class="tools">
     <div class="tool soon"><div class="ico"><svg><use href="#i-home"/></svg></div><div><div class="tname">Home Admin</div><div class="tdesc">Utilities, council tax, contacts</div></div></div>
     <div class="tool soon"><div class="ico"><svg><use href="#i-wrench"/></svg></div><div><div class="tname">Home Maintenance</div><div class="tdesc">Boiler, repairs, tradespeople</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-car"/></svg></div><div><div class="tname">Cars</div><div class="tdesc">MOT, tax, service, insurance</div></div></div>
+    <a class="tool" href="/renewals.html"><div class="ico"><svg><use href="#i-car"/></svg></div><div><div class="tname">Cars</div><div class="tdesc">MOT, tax and insurance in Renewals</div></div></a>
   </div>
 
   <div class="label">Health, Travel &amp; the Dog</div>
   <div class="tools">
     <div class="tool soon"><div class="ico"><svg><use href="#i-heart"/></svg></div><div><div class="tname">Health</div><div class="tdesc">Appointments, prescriptions</div></div></div>
     <div class="tool soon"><div class="ico"><svg><use href="#i-plane"/></svg></div><div><div class="tname">Travel</div><div class="tdesc">Trips, bookings, passports</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-paw"/></svg></div><div><div class="tname">The Dog</div><div class="tdesc">Vet, jabs, flea and worm</div></div></div>
+    <a class="tool" href="/dog.html"><div class="ico"><svg><use href="#i-paw"/></svg></div><div><div class="tname" id="dogName">The Dog</div><div class="tdesc" id="dogDesc">Vet, jabs, flea and worm</div></div></a>
   </div>
 
   <div class="label">Career</div>
@@ -194,6 +196,7 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   <div class="foot"><span class="st"><span class="dot"></span>Logged in · <a href="/logout" style="color:inherit">Log out</a></span><span>Personal use only. Work stays in the work toolkits.</span></div>
 </main>
 
+<script src="/hub.js"></script>
 <script>
 (function(){
   var today=new Date(); today.setHours(0,0,0,0);
@@ -202,20 +205,50 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   document.getElementById("day").textContent=days[today.getDay()];
   document.getElementById("date").textContent=today.getDate()+" "+months[today.getMonth()]+" "+today.getFullYear();
   function next(m,d){var x=new Date(today.getFullYear(),m,d);if(x<today)x.setFullYear(x.getFullYear()+1);return x}
-  var items=[
+  var fixed=[
     {t:"ICB hold ends",s:"Sterling policy, decide pay or settle",d:new Date(2026,11,16),p:"hold",pl:"Deadline"},
     {t:"Christmas Day",s:"Busiest week at work",d:next(11,25),p:"ok",pl:"Holiday"},
     {t:"Ben's birthday",s:"31 March",d:next(2,31),p:"ok",pl:"Family"}
-  ].filter(function(i){return i.d>=today}).sort(function(a,b){return a.d-b.d});
+  ];
   var box=document.getElementById("dates");
-  items.forEach(function(i){
-    var n=Math.round((i.d-today)/864e5);
-    var r=document.createElement("div");r.className="row";
-    r.innerHTML='<div class="days"><div><b>'+n+'</b><br><span>'+(n===1?"day":"days")+'</span></div></div><div class="info"><b></b><div></div></div><span class="pill '+i.p+'">'+i.pl+'</span>';
-    r.querySelector(".info b").textContent=i.t;
-    r.querySelector(".info div").textContent=i.d.getDate()+" "+months[i.d.getMonth()]+" "+i.d.getFullYear()+" · "+i.s;
-    box.appendChild(r);
-  });
+  function draw(list){
+    box.innerHTML="";
+    list.filter(function(i){return i.d>=today||i.p==="late"}).sort(function(a,b){return a.d-b.d}).slice(0,6).forEach(function(i){
+      var n=Math.round((i.d-today)/864e5);
+      var r=document.createElement("a");r.className="row";r.href=i.href||"#";if(!i.href)r.removeAttribute("href");
+      r.style.cssText="color:inherit;text-decoration:none";
+      r.innerHTML='<div class="days"><div><b>'+Math.abs(n)+'</b><br><span>'+(n<0?"late":(Math.abs(n)===1?"day":"days"))+'</span></div></div><div class="info"><b></b><div></div></div><span class="pill '+i.p+'">'+i.pl+'</span>';
+      r.querySelector(".info b").textContent=i.t;
+      r.querySelector(".info div").textContent=i.d.getDate()+" "+months[i.d.getMonth()]+" "+i.d.getFullYear()+" · "+i.s;
+      box.appendChild(r);
+    });
+  }
+  draw(fixed);
+  if(!window.Hub)return;
+  var H=Hub;
+  Promise.all([H.list("bills"),H.list("renewals"),H.list("dog_tasks"),H.list("dog_profile")]).then(function(res){
+    var extra=[], bills=res[0], ren=res[1], tasks=res[2], dog=res[3][0];
+    var perMonth=0;
+    bills.forEach(function(b){
+      var f=H.FREQ[b.freq]||H.FREQ.monthly; perMonth+=(Number(b.amount)||0)*f.perMonth;
+      var d=H.nextDue(b.due,b.freq); if(d&&H.days(d)<=7)extra.push({t:b.name,s:H.money(b.amount)+" bill",d:d,p:"ok",pl:"Bill",href:"/bills.html"});
+    });
+    if(bills.length)document.getElementById("billsDesc").textContent=H.money(perMonth)+" a month, "+bills.length+" bills";
+    var due=0;
+    ren.forEach(function(r){
+      var d=H.parse(r.date); if(!d)return; var n=H.days(d), warn=Number(r.remind)||30;
+      if(n<=warn){due++;extra.push({t:r.name,s:(r.autorenew?"auto-renews, check price":"renewal")+(r.provider?", "+r.provider:""),d:d,p:n<0?"late":"soon",pl:n<0?"Expired":"Renewal",href:"/renewals.html"});}
+    });
+    if(ren.length)document.getElementById("renDesc").textContent=due?due+" due soon":"All up to date";
+    var dogName=(dog&&dog.name)||"The dog"; var dogDue=0;
+    tasks.forEach(function(t){
+      var last=H.parse(t.last); if(!last)return; var d=H.addDays(last,Number(t.every)||30), n=H.days(d);
+      if(n<=7){dogDue++;extra.push({t:dogName+": "+t.name,s:"care",d:d,p:n<0?"late":"soon",pl:n<0?"Overdue":"Dog",href:"/dog.html"});}
+    });
+    if(dog&&dog.name)document.getElementById("dogName").textContent=dog.name;
+    if(tasks.length)document.getElementById("dogDesc").textContent=dogDue?dogDue+" care task"+(dogDue===1?"":"s")+" due":"Care all up to date";
+    draw(fixed.concat(extra));
+  }).catch(function(){});
 })();
 </script>
 </body>

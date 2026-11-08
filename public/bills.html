@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Bills and Budget · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Bills &amp; Budget</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+
+<main class="gut">
+  <div class="stats">
+    <div class="stat"><div class="k">Bills per month</div><div class="v" id="perMonth">£0.00</div><div class="s" id="perYear">£0.00 a year</div></div>
+    <div class="stat"><div class="k">Due in next 7 days</div><div class="v" id="week">£0.00</div><div class="s" id="weekCount">Nothing due</div></div>
+    <div class="stat"><div class="k">Left to go out this month</div><div class="v" id="month">£0.00</div><div class="s" id="monthCount">&nbsp;</div></div>
+  </div>
+
+  <div class="label">Your bills</div>
+  <div class="titlebar">
+    <div class="chips" id="cats" role="group" aria-label="Filter by category"></div>
+    <button id="add" class="copper">+ Add bill</button>
+  </div>
+  <div id="out"><div class="empty"><b>Loading your bills…</b></div></div>
+</main>
+
+<script src="/hub.js"></script>
+<script>
+(function(){
+  const H = Hub;
+  const CATS = [["home","Home"],["utilities","Utilities"],["insurance","Insurance"],["car","Car"],["phone","Phone and internet"],["subscriptions","Subscriptions"],["family","Family"],["debt","Loans and cards"],["other","Other"]];
+  const CATNAME = Object.fromEntries(CATS);
+  let bills = [], filter = "all";
+
+  const fields = [
+    {name:"name", label:"Bill", required:true, placeholder:"e.g. Council tax", full:true},
+    {name:"amount", label:"Amount (£)", type:"number", step:"0.01", required:true},
+    {name:"freq", label:"How often", type:"select", options:Object.entries(H.FREQ).map(([k,v])=>[k,v.label]), value:"monthly"},
+    {name:"due", label:"Next payment date", type:"date", required:true},
+    {name:"category", label:"Category", type:"select", options:CATS, value:"home"},
+    {name:"provider", label:"Who to", placeholder:"e.g. Octopus"},
+    {name:"account", label:"Paid from", placeholder:"e.g. Joint account"},
+    {name:"notes", label:"Notes", type:"textarea", full:true},
+  ];
+
+  function render(){
+    const rows = bills.map(b => ({...b, next: H.nextDue(b.due, b.freq)})).filter(b => b.next).sort((a,b)=>a.next-b.next);
+    const perMonth = rows.reduce((s,b)=>s + (Number(b.amount)||0) * (H.FREQ[b.freq]||H.FREQ.monthly).perMonth, 0);
+    document.getElementById("perMonth").textContent = H.money(perMonth);
+    document.getElementById("perYear").textContent = H.money(perMonth*12) + " a year";
+    // All payments falling in a window, counting repeats.
+    function within(endDate){
+      let total = 0, count = 0;
+      rows.forEach(b => { let d = b.next, g=0; const f = H.FREQ[b.freq]||H.FREQ.monthly; while (d <= endDate && g++ < 60){ total += Number(b.amount)||0; count++; d = f.step(d); } });
+      return {total, count};
+    }
+    const t = H.today();
+    const w = within(H.addDays(t, 7));
+    document.getElementById("week").textContent = H.money(w.total);
+    document.getElementById("weekCount").textContent = w.count ? w.count + (w.count===1?" payment":" payments") : "Nothing due";
+    const m = within(new Date(t.getFullYear(), t.getMonth()+1, 0));
+    document.getElementById("month").textContent = H.money(m.total);
+    document.getElementById("monthCount").textContent = m.count + (m.count===1?" payment":" payments") + " before month end";
+
+    const used = [...new Set(rows.map(b=>b.category||"other"))];
+    document.getElementById("cats").innerHTML = rows.length ? [["all","All"], ...CATS.filter(c=>used.includes(c[0]))].map(c =>
+      '<button class="chip" data-cat="'+c[0]+'" aria-pressed="'+(filter===c[0])+'">'+H.esc(c[1])+'</button>').join("") : "";
+
+    const shown = rows.filter(b => filter==="all" || (b.category||"other")===filter);
+    const out = document.getElementById("out");
+    if (!bills.length){
+      out.innerHTML = '<div class="empty"><b>No bills yet</b>Add your direct debits and regular payments. The totals above work themselves out.<br><button class="copper" data-act="add">+ Add your first bill</button></div>';
+      return;
+    }
+    out.innerHTML = '<div class="list">' + shown.map(b => {
+      const f = H.FREQ[b.freq]||H.FREQ.monthly;
+      const sub = [CATNAME[b.category]||"Other", b.provider, b.account && ("from " + b.account)].filter(Boolean).map(H.esc).join(" · ");
+      return '<div class="item">' + H.whenBadge(b.next) +
+        '<div class="main"><b>'+H.esc(b.name)+'</b><div class="sub">'+sub+'</div></div>' +
+        '<div class="amt">'+H.money(b.amount)+'<small>'+H.esc(f.label)+' · '+H.short(b.next)+'</small></div>' +
+        '<div class="actions"><button class="ghost" data-edit="'+b.id+'">Edit</button></div></div>';
+    }).join("") + '</div>';
+  }
+
+  function openForm(bill){
+    H.form({
+      title: bill ? "Edit bill" : "Add a bill",
+      fields, values: bill ? {...bill, due: H.iso(H.nextDue(bill.due, bill.freq))} : {due: H.iso(H.today())},
+      onSubmit: async (data) => {
+        if (bill){ const saved = await H.update("bills", bill.id, data); bills = bills.map(b => b.id===bill.id ? saved : b); H.toast("Bill saved"); }
+        else { bills.push(await H.create("bills", data)); H.toast("Bill added"); }
+        render();
+      },
+      onDelete: bill ? async () => { await H.remove("bills", bill.id); bills = bills.filter(b=>b.id!==bill.id); render(); H.toast("Bill deleted"); } : null,
+    });
+  }
+
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-edit],[data-cat],[data-act],#add");
+    if (!el) return;
+    if (el.id === "add" || el.dataset.act === "add") openForm(null);
+    else if (el.dataset.edit) openForm(bills.find(b=>b.id===el.dataset.edit));
+    else if (el.dataset.cat) { filter = el.dataset.cat; render(); }
+  });
+
+  H.list("bills").then(r => { bills = r; render(); }).catch(err => {
+    document.getElementById("out").innerHTML = '<div class="empty"><b>Could not load your bills</b>'+H.esc(err.message)+'. Reload to try again.</div>';
+  });
+})();
+</script>
+</body>
+</html>

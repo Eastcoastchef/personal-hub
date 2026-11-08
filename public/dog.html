@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>The Dog · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+<style>
+.top{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+@media (max-width:760px){.top{grid-template-columns:1fr}}
+.dogname{font-family:var(--display);font-size:24px;font-weight:700;margin:0}
+.cardhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.meta{color:var(--muted);font-size:13.5px;margin-top:2px}
+.weight{font-family:var(--display);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+.spark{width:100%;height:60px;display:block;margin-top:8px}
+.spark path.line{fill:none;stroke:var(--copper);stroke-width:2}
+.spark path.area{fill:var(--copper-pale);stroke:none}
+.spark circle{fill:var(--copper)}
+</style>
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">The Dog</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+
+<main class="gut">
+  <div class="top">
+    <div class="card" id="profile"><b>Loading…</b></div>
+    <div class="card" id="weightCard"></div>
+  </div>
+
+  <div class="label">Care schedule</div>
+  <div class="titlebar"><span class="meta">Tap "Done today" when you give a treatment. The next date works itself out.</span><button id="addTask" class="copper">+ Add task</button></div>
+  <div id="tasks"></div>
+
+  <div class="label">Log</div>
+  <div class="titlebar"><span class="meta">Vet visits, weigh-ins, grooming and anything worth remembering.</span><button id="addLog" class="copper">+ Add entry</button></div>
+  <div id="log"></div>
+</main>
+
+<script src="/hub.js"></script>
+<script>
+(function(){
+  const H = Hub;
+  let profile = null, tasks = [], log = [];
+  const STANDARD = [
+    {name:"Flea treatment", every:30},
+    {name:"Worming", every:90},
+    {name:"Annual booster", every:365},
+    {name:"Kennel cough", every:365},
+  ];
+  const LOGTYPES = [["vet","Vet visit"],["weight","Weigh-in"],["groom","Grooming"],["treatment","Treatment"],["note","Note"]];
+  const LOGNAME = Object.fromEntries(LOGTYPES);
+
+  function age(dob){
+    const d = H.parse(dob); if (!d) return "";
+    const t = H.today();
+    let m = (t.getFullYear()-d.getFullYear())*12 + (t.getMonth()-d.getMonth()); if (t.getDate() < d.getDate()) m--;
+    const y = Math.floor(m/12), mm = m%12;
+    return y ? y + (y===1?" year":" years") + (mm? ", " + mm + (mm===1?" month":" months"):"") : mm + (mm===1?" month":" months");
+  }
+
+  function renderProfile(){
+    const el = document.getElementById("profile");
+    if (!profile){
+      el.innerHTML = '<div class="cardhead"><div><p class="dogname">Your dog</p><div class="meta">Add the details once and they\'re here when the vet or kennels ask.</div></div></div><button class="copper" data-act="profile">Add details</button>';
+      return;
+    }
+    const p = profile;
+    const rows = [["Breed",p.breed],["Born",p.dob && (H.long(H.parse(p.dob)) + " (" + age(p.dob) + ")")],["Microchip",p.chip],["Vet",[p.vet,p.vetPhone].filter(Boolean).join(", ")],["Insurance",[p.insurer,p.policy].filter(Boolean).join(", ")],["Food",p.food]].filter(r=>r[1]);
+    el.innerHTML = '<div class="cardhead"><div><p class="dogname">'+H.esc(p.name||"Your dog")+'</p>'+(p.dob?'<div class="meta">'+H.esc(age(p.dob))+' old</div>':'')+'</div><button class="ghost" data-act="profile">Edit</button></div>' +
+      (rows.length ? '<dl class="facts">'+rows.map(r=>'<dt>'+H.esc(r[0])+'</dt><dd>'+H.esc(r[1])+'</dd>').join("")+'</dl>' : '');
+  }
+
+  function renderWeight(){
+    const el = document.getElementById("weightCard");
+    const w = log.filter(l=>l.weight!=null && l.weight!=="" && H.parse(l.date)).sort((a,b)=>H.parse(a.date)-H.parse(b.date));
+    if (!w.length){ el.innerHTML = '<div class="meta">Weight</div><div class="weight">–</div><div class="meta">Add a weigh-in to the log to track it here.</div>'; return; }
+    const last = w[w.length-1];
+    let svg = "";
+    if (w.length > 1){
+      const vals = w.map(x=>Number(x.weight)), lo = Math.min(...vals), hi = Math.max(...vals), span = (hi-lo)||1;
+      const pts = vals.map((v,i)=>[ (i/(vals.length-1))*296+2, 54 - ((v-lo)/span)*46 ]);
+      const line = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+      const lp = pts[pts.length-1];
+      svg = '<svg class="spark" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="'+line+' L298 60 L2 60 Z"/><path class="line" d="'+line+'"/><circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="3"/></svg>';
+    }
+    const prev = w.length>1 ? Number(w[w.length-2].weight) : null;
+    const diff = prev!=null ? Number(last.weight)-prev : null;
+    el.innerHTML = '<div class="meta">Weight</div><div class="weight">'+Number(last.weight).toFixed(1)+' kg</div><div class="meta">'+H.long(H.parse(last.date))+(diff!=null && Math.abs(diff)>=0.05 ? ' · '+(diff>0?"up ":"down ")+Math.abs(diff).toFixed(1)+' kg':'')+'</div>'+svg;
+  }
+
+  function nextFor(t){ const last = H.parse(t.last); return last ? H.addDays(last, Number(t.every)||30) : null; }
+
+  function renderTasks(){
+    const el = document.getElementById("tasks");
+    if (!tasks.length){
+      el.innerHTML = '<div class="empty"><b>No care schedule yet</b>Start with the usual flea, worming and booster reminders, then set when each was last done.<br><button class="copper" data-act="standard">Add the usual schedule</button></div>';
+      return;
+    }
+    const rows = tasks.slice().sort((a,b)=>{ const x=nextFor(a), y=nextFor(b); return (x?x:-Infinity)-(y?y:-Infinity); });
+    el.innerHTML = '<div class="list">' + rows.map(t=>{
+      const n = nextFor(t);
+      let pill = '<span class="pill flat">Set last done</span>';
+      if (n){ const d = H.days(n); pill = d<0 ? '<span class="pill late">Overdue</span>' : d<=7 ? '<span class="pill soon">Due soon</span>' : '<span class="pill ok">Fine</span>'; }
+      return '<div class="item">' + (n ? H.whenBadge(n) : '<div class="when"><b>?</b><span>no date</span></div>') +
+        '<div class="main"><b>'+H.esc(t.name)+' '+pill+'</b><div class="sub">Every '+H.esc(t.every)+' days'+(t.last?' · last done '+H.long(H.parse(t.last)):'')+(t.product?' · '+H.esc(t.product):'')+'</div></div>' +
+        '<div class="actions"><button class="ghost" data-done="'+t.id+'">Done today</button><button class="ghost" data-task="'+t.id+'">Edit</button></div></div>';
+    }).join("") + '</div>';
+  }
+
+  function renderLog(){
+    const el = document.getElementById("log");
+    if (!log.length){ el.innerHTML = '<div class="empty"><b>Nothing logged yet</b>Treatments you mark as done show up here too.</div>'; return; }
+    const rows = log.slice().sort((a,b)=>(H.parse(b.date)||0)-(H.parse(a.date)||0)).slice(0,40);
+    el.innerHTML = '<div class="list">' + rows.map(l=>{
+      const d = H.parse(l.date);
+      return '<div class="item"><div class="when"><b>'+(d?d.getDate():"")+'</b><span>'+(d?H.short(d).split(" ")[1]+" "+String(d.getFullYear()).slice(2):"")+'</span></div>' +
+        '<div class="main"><b>'+H.esc(l.title || LOGNAME[l.type] || "Entry")+'</b><div class="sub">'+[l.title ? LOGNAME[l.type] : "", l.weight!=null&&l.weight!==""?Number(l.weight).toFixed(1)+" kg":"", l.cost!=null&&l.cost!==""?H.money(l.cost):"", l.notes].filter(Boolean).map(H.esc).join(" · ")+'</div></div>' +
+        '<div class="actions"><button class="ghost" data-log="'+l.id+'">Edit</button></div></div>';
+    }).join("") + '</div>';
+  }
+
+  function renderAll(){ renderProfile(); renderWeight(); renderTasks(); renderLog(); }
+
+  function editProfile(){
+    H.form({
+      title: "Dog details",
+      values: profile || {},
+      fields: [
+        {name:"name", label:"Name", required:true},
+        {name:"breed", label:"Breed"},
+        {name:"dob", label:"Date of birth", type:"date"},
+        {name:"chip", label:"Microchip number"},
+        {name:"vet", label:"Vet practice"},
+        {name:"vetPhone", label:"Vet phone", type:"tel"},
+        {name:"insurer", label:"Pet insurer"},
+        {name:"policy", label:"Policy number"},
+        {name:"food", label:"Food and amounts", full:true},
+      ],
+      onSubmit: async (data) => {
+        profile = profile ? await H.update("dog_profile", profile.id, data) : await H.create("dog_profile", data);
+        renderProfile(); H.toast("Details saved");
+      },
+    });
+  }
+
+  function editTask(t){
+    H.form({
+      title: t ? "Edit task" : "Add a care task",
+      values: t || {every:30},
+      fields: [
+        {name:"name", label:"Task", required:true, placeholder:"e.g. Flea treatment", full:true},
+        {name:"every", label:"Every (days)", type:"number", step:"1", required:true},
+        {name:"last", label:"Last done", type:"date"},
+        {name:"product", label:"Product or dose", full:true},
+      ],
+      onSubmit: async (data) => {
+        if (t){ const s = await H.update("dog_tasks", t.id, data); tasks = tasks.map(x=>x.id===t.id?s:x); }
+        else tasks.push(await H.create("dog_tasks", data));
+        renderTasks(); H.toast("Saved");
+      },
+      onDelete: t ? async () => { await H.remove("dog_tasks", t.id); tasks = tasks.filter(x=>x.id!==t.id); renderTasks(); H.toast("Deleted"); } : null,
+    });
+  }
+
+  function editLog(l){
+    H.form({
+      title: l ? "Edit entry" : "Add to the log",
+      values: l || {date:H.iso(H.today()), type:"note"},
+      fields: [
+        {name:"date", label:"Date", type:"date", required:true},
+        {name:"type", label:"Type", type:"select", options:LOGTYPES},
+        {name:"title", label:"What happened", placeholder:"e.g. Annual check-up", full:true},
+        {name:"weight", label:"Weight (kg)", type:"number", step:"0.1"},
+        {name:"cost", label:"Cost (£)", type:"number", step:"0.01"},
+        {name:"notes", label:"Notes", type:"textarea", full:true},
+      ],
+      onSubmit: async (data) => {
+        if (l){ const s = await H.update("dog_log", l.id, data); log = log.map(x=>x.id===l.id?s:x); }
+        else log.push(await H.create("dog_log", data));
+        renderLog(); renderWeight(); H.toast("Saved");
+      },
+      onDelete: l ? async () => { await H.remove("dog_log", l.id); log = log.filter(x=>x.id!==l.id); renderLog(); renderWeight(); H.toast("Deleted"); } : null,
+    });
+  }
+
+  async function markDone(t){
+    try {
+      const today = H.iso(H.today());
+      const s = await H.update("dog_tasks", t.id, {...t, last: today});
+      tasks = tasks.map(x=>x.id===t.id?s:x);
+      log.push(await H.create("dog_log", {date: today, type:"treatment", title: t.name, notes: t.product || ""}));
+      renderTasks(); renderLog(); H.toast(t.name + " done");
+    } catch (err) { H.toast(err.message, true); }
+  }
+
+  async function addStandard(){
+    try { for (const s of STANDARD) tasks.push(await H.create("dog_tasks", {...s, last:""})); renderTasks(); H.toast("Schedule added. Set when each was last done."); }
+    catch (err) { H.toast(err.message, true); }
+  }
+
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-act],[data-done],[data-task],[data-log],#addTask,#addLog");
+    if (!el) return;
+    if (el.dataset.act === "profile") editProfile();
+    else if (el.dataset.act === "standard") addStandard();
+    else if (el.id === "addTask") editTask(null);
+    else if (el.id === "addLog") editLog(null);
+    else if (el.dataset.done) markDone(tasks.find(x=>x.id===el.dataset.done));
+    else if (el.dataset.task) editTask(tasks.find(x=>x.id===el.dataset.task));
+    else if (el.dataset.log) editLog(log.find(x=>x.id===el.dataset.log));
+  });
+
+  Promise.all([H.list("dog_profile"), H.list("dog_tasks"), H.list("dog_log")]).then(([p,t,l]) => {
+    profile = p[0] || null; tasks = t; log = l; renderAll();
+  }).catch(err => {
+    document.getElementById("profile").innerHTML = '<b>Could not load</b><div class="meta">'+H.esc(err.message)+'. Reload to try again.</div>';
+  });
+})();
+</script>
+</body>
+</html>

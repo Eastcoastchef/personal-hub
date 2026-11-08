@@ -36,7 +36,14 @@ export default {
       return handleLogin(request, env);
     }
 
-    if (env.TOTP_SECRET && (await hasValidSession(request, env))) {
+    const authed = env.TOTP_SECRET && (await hasValidSession(request, env));
+
+    if (url.pathname.startsWith("/api/")) {
+      if (!authed) return json({ error: "Not logged in" }, 401);
+      return handleApi(request, env, url);
+    }
+
+    if (authed) {
       const res = await env.ASSETS.fetch(request);
       const headers = new Headers(res.headers);
       headers.set("Cache-Control", "private, no-store");
@@ -168,6 +175,78 @@ function randomBase32(bytes) {
   }
   if (bits > 0) out += B32[(value << (5 - bits)) & 31];
   return out;
+}
+
+
+// ---------- Data API (D1) ----------
+// One table. Each record belongs to a collection and holds its fields as JSON.
+// Only reachable with a valid session (checked in fetch above).
+
+const COLLECTIONS = new Set(["bills", "renewals", "dog_profile", "dog_tasks", "dog_log"]);
+const MAX_BODY = 20000;
+let schemaReady = false;
+
+async function ensureSchema(db) {
+  if (schemaReady) return;
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, col TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS items_col ON items (col)"),
+  ]);
+  schemaReady = true;
+}
+
+export async function handleApi(request, env, url) {
+  if (!env.DB) return json({ error: "Database not connected" }, 503);
+  const parts = url.pathname.split("/").filter(Boolean); // ["api", col, id?]
+  const col = parts[1];
+  const id = parts[2];
+  if (!COLLECTIONS.has(col) || parts.length > 3) return json({ error: "Unknown list" }, 404);
+
+  const method = request.method;
+  if (method !== "GET") {
+    // Writes must come from the hub's own pages.
+    if (request.headers.get("X-Hub") !== "1") return json({ error: "Refused" }, 403);
+  }
+
+  await ensureSchema(env.DB);
+  const now = new Date().toISOString();
+
+  if (method === "GET" && !id) {
+    const { results } = await env.DB.prepare("SELECT id, data, updated_at FROM items WHERE col = ? ORDER BY created_at").bind(col).all();
+    return json(results.map((r) => ({ ...safeParse(r.data), id: r.id, updated_at: r.updated_at })));
+  }
+
+  if ((method === "POST" && !id) || (method === "PUT" && id)) {
+    const text = await request.text();
+    if (text.length > MAX_BODY) return json({ error: "Too much data" }, 413);
+    const body = safeParse(text);
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Bad data" }, 400);
+    delete body.id; delete body.updated_at;
+    const data = JSON.stringify(body);
+    if (method === "POST") {
+      const newId = crypto.randomUUID();
+      await env.DB.prepare("INSERT INTO items (id, col, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind(newId, col, data, now, now).run();
+      return json({ ...body, id: newId, updated_at: now }, 201);
+    }
+    const r = await env.DB.prepare("UPDATE items SET data = ?, updated_at = ? WHERE id = ? AND col = ?").bind(data, now, id, col).run();
+    if (!r.meta || r.meta.changes === 0) return json({ error: "Not found" }, 404);
+    return json({ ...body, id, updated_at: now });
+  }
+
+  if (method === "DELETE" && id) {
+    await env.DB.prepare("DELETE FROM items WHERE id = ? AND col = ?").bind(id, col).run();
+    return json({ ok: true });
+  }
+
+  return json({ error: "Not allowed" }, 405);
+}
+
+function safeParse(t) { try { return JSON.parse(t); } catch { return null; } }
+
+function json(obj, status = 200) {
+  const headers = new Headers({ "Content-Type": "application/json", "Cache-Control": "no-store" });
+  addSecurityHeaders(headers);
+  return new Response(JSON.stringify(obj), { status, headers });
 }
 
 // ---------- Helpers ----------

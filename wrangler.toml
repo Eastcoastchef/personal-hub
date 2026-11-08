@@ -13,3 +13,9 @@ run_worker_first = true
 name = "LOGIN_LIMITER"
 namespace_id = "1001"
 simple = { limit = 5, period = 60 }
+
+# Personal data for the bills, renewals and dog tools. Only the worker can reach it.
+[[d1_databases]]
+binding = "DB"
+database_name = "personal-hub"
+database_id = "d9de61e6-d57d-464c-9ebc-9922c8d6c07d"

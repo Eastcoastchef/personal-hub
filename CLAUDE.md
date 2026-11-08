@@ -10,6 +10,12 @@ Live at https://personal-hub.carl-839.workers.dev/ . It deploys to Cloudflare Wo
 - This is personal only. Nothing from the Duke's Head, Baseline or Lenne Lodge repos belongs here except links to their live sites.
 - Plain, direct language. No em dashes.
 
+## Tools and data
+- Pages: `bills.html`, `renewals.html`, `dog.html`, sharing `tools.css` and `hub.js`. `index.html` pulls due items from them into Coming up.
+- Data lives in D1 database `personal-hub` (binding `DB`, id in wrangler.toml), one table `items` (id, col, data JSON, created_at, updated_at). The worker creates it if missing.
+- API: `/api/<list>` GET/POST and `/api/<list>/<id>` PUT/DELETE, only with a valid session. Writes need the header `X-Hub: 1`. Lists: bills, renewals, dog_profile, dog_tasks, dog_log. A new list must be added to COLLECTIONS in worker.js.
+- Test locally with `npx wrangler dev --local` and a `.dev.vars` file holding test secrets (never committed).
+
 Live hubs it links to:
 - Duke's Head toolkit: https://dukes-head-toolkit.chef-b23.workers.dev/
 - Baseline Kitchen Toolkit admin: https://baseline-kitchen-toolkit.pages.dev/admin
