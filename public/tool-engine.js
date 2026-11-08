@@ -18,7 +18,7 @@
     return '<span class="pill ok">' + (w.ok || "Fine") + "</span>";
   };
 
-  H.tool = function ({ sections, stats, intro }) {
+  H.tool = function ({ sections, stats, intro, onRender }) {
     const app = document.getElementById("app");
     const data = {};
     sections.forEach((s) => (data[s.col] = []));
@@ -58,7 +58,7 @@
       }).join("") + "</div>";
     }
 
-    function renderAll() { sections.forEach(renderSection); renderStats(); }
+    function renderAll() { sections.forEach(renderSection); renderStats(); if (onRender) onRender(data); }
 
     function fieldsFor(s) {
       return s.fields.map((f) => (typeof f.options === "function" ? { ...f, options: f.options(data) } : f));

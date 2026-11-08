@@ -98,3 +98,29 @@ textarea{min-height:70px;resize:vertical}
 .ico-badge{width:52px;height:44px;flex-shrink:0;border-radius:9px;background:var(--copper-pale);color:var(--copper);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:14px}
 .meta{color:var(--muted);font-size:13.5px}
 .item .note{font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* Month view */
+.calbox{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;margin:18px 0 4px}
+.calhead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.calhead h2{font-family:var(--display);font-size:19px;margin:0 auto 0 4px;order:-1}
+.grid7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.wk span{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:center;padding:2px 0}
+.cell{min-height:92px;background:var(--bg);border:1.5px solid transparent;border-radius:8px;padding:5px;display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;color:var(--ink);font-weight:500;cursor:pointer;min-width:0;overflow:hidden}
+.cell:hover{background:var(--bg);border-color:var(--line)}
+.cell.blank{background:transparent;cursor:default}
+.cell .dn{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.cell.today .dn{background:var(--copper);color:#1b1410;border-radius:20px;padding:0 7px;align-self:flex-start}
+.cell.picked{border-color:var(--copper)}
+.evs{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ev{font-size:11px;line-height:1.25;padding:1px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);background:var(--paper);border-left:3px solid var(--kc)}
+.more{font-size:11px;color:var(--muted)}
+.dots{display:none;gap:3px;flex-wrap:wrap}
+.dots i,.legend i,.dvrow i{width:8px;height:8px;border-radius:50%;background:var(--kc);display:inline-block;flex-shrink:0}
+.k-diary{--kc:#c98a5a}.k-bday{--kc:#d4569b}.k-health{--kc:#2f9e6b}.k-travel{--kc:#3b82c4}.k-renew{--kc:#d99a1e}.k-bill{--kc:#7a6fd0}.k-dog{--kc:#a0704a}.k-home{--kc:#5f8a8f}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dayview{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.dvrow{display:flex;align-items:center;gap:8px;font-size:14px;min-width:0}
+.dvrow span{flex:1;min-width:0;overflow-wrap:anywhere}
+.dvrow small{color:var(--muted);font-size:12px}
+.dvrow a{color:var(--copper);font-weight:700;font-size:13px;text-decoration:none}
+@media (max-width:640px){.cell{min-height:52px;padding:4px}.evs{display:none}.dots{display:flex}.calbox{padding:10px}}

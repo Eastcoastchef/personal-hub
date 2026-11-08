@@ -21,7 +21,8 @@
 <script>
 (function(){
 const H = Hub;
-H.tool({
+const CTX = H.tool({
+  onRender: d => { diary = d.cal_events; if (typeof drawCal === 'function' && Object.keys(other).length) drawCal(); },
   stats: d => {
     const t=H.today(), end=H.addDays(t,7);
     const occ=(ev)=>{ let x=H.parse(ev.date); if(!x) return null; if(ev.yearly){ x=new Date(t.getFullYear(),x.getMonth(),x.getDate()); if(x<t) x.setFullYear(x.getFullYear()+1);} return x; };
@@ -41,6 +42,61 @@ H.tool({
       row:e=>{ const t=H.today(); let d=H.parse(e.date); if(e.yearly&&d){ d=new Date(t.getFullYear(),d.getMonth(),d.getDate()); if(d<t) d.setFullYear(d.getFullYear()+1);} const past=d&&d<t;
         return {date:past?undefined:d, dayBadge:past?[d.getDate(),"past"]:undefined, title:e.title, pill:(past?'<span class="pill flat">Past</span>':"")+(e.yearly?' <span class="pill flat">Yearly</span>':""), sub:[H.PERSON[e.who],d&&H.long(d),e.time,e.where].filter(Boolean).join(" · "), subHtml:e.notes?'<div class="note">'+H.esc(e.notes)+'</div>':""}; } },
   ],
+});
+
+// ---------- Month view ----------
+// Shows diary events plus dates from the other tools and family birthdays.
+const BDAYS=[["Caley",1985,8,17],["Jessica",2009,11,17],["Ben",2008,3,31],["Bryony",2002,4,30]];
+const KIND={diary:"Diary",bday:"Birthday",health:"Health",travel:"Travel",renew:"Renewal",bill:"Bill",dog:"Maggie",home:"Home"};
+let other={}, view=new Date(H.today().getFullYear(),H.today().getMonth(),1), picked=H.today(), diary=[];
+const app=document.getElementById("app");
+const box=document.createElement("section"); box.className="calbox"; box.setAttribute("aria-label","Month view");
+const OTHER=["health_appts","travel_trips","renewals","bills","dog_tasks","home_tasks"];
+Promise.all(OTHER.map(c=>H.list(c).catch(()=>[]))).then(r=>{OTHER.forEach((c,i)=>other[c]=r[i]); drawCal();});
+
+function eventsIn(y,m){
+  const first=new Date(y,m,1), last=new Date(y,m+1,0), out=[];
+  const put=(d,kind,text,href)=>{ if(d>=first&&d<=last) out.push({d,kind,text,href}); };
+  diary.forEach(e=>{ let d=H.parse(e.date); if(!d) return; if(e.yearly) d=new Date(y,d.getMonth(),d.getDate()); put(d,"diary",(e.time?e.time+" ":"")+e.title); });
+  BDAYS.forEach(([n,by,bm,bd])=>put(new Date(y,bm-1,bd),"bday",n+" ("+(y-by)+")"));
+  (other.health_appts||[]).forEach(a=>{const d=H.parse(a.date); if(d) put(d,"health",(a.time?a.time+" ":"")+a.what,"/health.html");});
+  (other.travel_trips||[]).forEach(t=>{const s=H.parse(t.start), e=H.parse(t.end)||s; if(!s) return; for(let d=new Date(s),g=0; d<=e&&g<60; d=H.addDays(d,1),g++) put(d,"travel",t.name,"/travel.html");});
+  (other.renewals||[]).forEach(r=>{const d=H.parse(r.date); if(d) put(d,"renew",r.name,"/renewals.html");});
+  (other.bills||[]).forEach(b=>{ const f=H.FREQ[b.freq]||H.FREQ.monthly; let d=H.parse(b.due),g=0; if(!d) return; while(d<first&&g++<600) d=f.step(d); while(d<=last&&g++<700){ put(d,"bill",b.name+" "+H.money(b.amount)+((b.who||"carl")==="caley"?" (Caley)":""),"/bills.html"); d=f.step(d);} });
+  (other.dog_tasks||[]).forEach(t=>{const d=H.nextEvery(t); if(d) put(d,"dog",t.name,"/dog.html");});
+  (other.home_tasks||[]).forEach(t=>{const d=H.nextEvery(t); if(d) put(d,"home",t.name,"/home.html");});
+  return out;
+}
+
+function drawCal(){
+  const y=view.getFullYear(), m=view.getMonth();
+  const evs=eventsIn(y,m), byDay={};
+  evs.forEach(e=>{(byDay[e.d.getDate()]=byDay[e.d.getDate()]||[]).push(e);});
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const lead=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate(), t=H.today();
+  let cells="";
+  for(let i=0;i<lead;i++) cells+='<div class="cell blank"></div>';
+  for(let d=1; d<=days; d++){
+    const date=new Date(y,m,d), list=byDay[d]||[];
+    const isT=+date===+t, isP=picked&&+date===+picked;
+    cells+='<button class="cell'+(isT?" today":"")+(isP?" picked":"")+'" data-day="'+d+'" aria-label="'+d+" "+MONTHS[m]+", "+list.length+(list.length===1?" item":" items")+'"><span class="dn">'+d+'</span>'+
+      '<span class="evs">'+list.slice(0,3).map(e=>'<span class="ev k-'+e.kind+'">'+H.esc(e.text)+'</span>').join("")+(list.length>3?'<span class="more">+'+(list.length-3)+'</span>':"")+'</span>'+
+      '<span class="dots">'+list.slice(0,4).map(e=>'<i class="k-'+e.kind+'"></i>').join("")+'</span></button>';
+  }
+  const pl=picked&&picked.getMonth()===m&&picked.getFullYear()===y ? (byDay[picked.getDate()]||[]) : null;
+  box.innerHTML='<div class="calhead"><button class="ghost" data-nav="-1" aria-label="Previous month">‹</button><h2>'+MONTHS[m]+' '+y+'</h2><button class="ghost" data-nav="1" aria-label="Next month">›</button><button class="ghost" data-nav="0">Today</button></div>'+
+    '<div class="grid7 wk"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>'+
+    '<div class="grid7">'+cells+'</div>'+
+    '<div class="legend">'+Object.entries(KIND).map(([k,v])=>'<span><i class="k-'+k+'"></i>'+v+'</span>').join("")+'</div>'+
+    (pl?'<div class="dayview"><b>'+H.long(picked)+'</b>'+(pl.length?pl.map(e=>'<div class="dvrow"><i class="k-'+e.kind+'"></i><span>'+H.esc(e.text)+'</span><small>'+KIND[e.kind]+'</small>'+(e.href?'<a href="'+e.href+'">Open</a>':"")+'</div>').join(""):'<div class="meta">Nothing on this day. <button class="ghost" data-addon="1">+ Add to diary</button></div>')+'</div>':"");
+  if(!box.isConnected) app.insertBefore(box, app.querySelector("section"));
+}
+
+box.addEventListener("click",e=>{
+  const nav=e.target.closest("[data-nav]"), day=e.target.closest("[data-day]"), addon=e.target.closest("[data-addon]");
+  if(nav){ const n=Number(nav.dataset.nav); view = n===0 ? new Date(H.today().getFullYear(),H.today().getMonth(),1) : new Date(view.getFullYear(),view.getMonth()+n,1); if(n===0) picked=H.today(); drawCal(); }
+  else if(day){ picked=new Date(view.getFullYear(),view.getMonth(),Number(day.dataset.day)); drawCal(); }
+  else if(addon){ document.querySelector('[data-add=cal_events]').click(); setTimeout(()=>{const f=document.getElementById("f_date"); if(f) f.value=H.iso(picked);},0); }
 });
 
 })();
