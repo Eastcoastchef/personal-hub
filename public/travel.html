@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Travel · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Travel</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+const DOCTYPES=[["passport","Passport"],["licence","Driving licence"],["ghic","GHIC health card"],["insurance","Travel insurance"],["visa","Visa or ETA"],["other","Other"]];
+const DOC=Object.fromEntries(DOCTYPES);
+const pOpts=H.PEOPLE.filter(p=>p[0]!=="everyone");
+H.tool({
+  stats: d => {
+    const up=d.travel_trips.filter(t=>{const x=H.parse(t.end||t.start);return x&&H.days(x)>=0;}).sort((a,b)=>H.parse(a.start)-H.parse(b.start));
+    const docs=d.travel_docs.filter(x=>{const e=H.parse(x.expiry);return e&&H.days(e)<=(Number(x.remind)||180);}).length;
+    const spend=up.reduce((s,t)=>s+(Number(t.cost)||0),0);
+    return [
+      {k:"Next trip", v:up[0]?H.short(H.parse(up[0].start)):"–", s:up[0]?up[0].name+" · "+(H.days(H.parse(up[0].start))>0?H.days(H.parse(up[0].start))+" days to go":"away now"):"Nothing booked"},
+      {k:"Documents to renew", v:String(docs), s:docs?"Expiring soon or expired":"All in date"},
+      {k:"Booked trips cost", v:H.money(spend), s:up.length+" upcoming"},
+    ];
+  },
+  sections: [
+    { col:"travel_trips", title:"Trips", intro:"Dates, bookings and references in one place.", addLabel:"Add trip", noun:"trip",
+      emptyTitle:"No trips yet", emptyText:"Add holidays, weekends away and work trips.",
+      defaults:()=>({who:"everyone"}),
+      fields:[{name:"name",label:"Trip",required:true,placeholder:"e.g. Tenerife"},{name:"who",label:"Who's going",type:"select",options:H.PEOPLE},{name:"start",label:"Leave",type:"date",required:true},{name:"end",label:"Back",type:"date"},{name:"cost",label:"Total cost (£)",type:"number",step:"0.01"},{name:"ref",label:"Booking references"},{name:"notes",label:"Flights, hotel, parking, transfers",type:"textarea",full:true}],
+      sort:(a,b)=>{ const x=H.parse(a.end||a.start),y=H.parse(b.end||b.start),t=H.today(); const fa=x>=t, fb=y>=t; if(fa!==fb) return fa?-1:1; return fa?H.parse(a.start)-H.parse(b.start):y-x; },
+      row:t=>{ const s=H.parse(t.start), e=H.parse(t.end); const past=(e||s)&&H.days(e||s)<0; const away=s&&H.days(s)<=0&&!past;
+        return {date:past||away?undefined:s, dayBadge:past?[s.getDate(),"been"]:away?["Now","away"]:undefined, title:t.name, pill:past?'<span class="pill flat">Done</span>':away?'<span class="pill ok">Away</span>':"", right:t.cost!=null&&t.cost!==""?H.money(t.cost):"", rightSub:s?H.short(s)+(e?" to "+H.short(e):""):"", sub:[H.PERSON[t.who],t.ref&&("ref "+t.ref)].filter(Boolean).join(" · "), subHtml:t.notes?'<div class="note">'+H.esc(t.notes)+'</div>':""}; } },
+    { col:"travel_docs", title:"Passports and documents", intro:"Many countries want 3 to 6 months left on a passport, so the warning starts 6 months out.", addLabel:"Add document", noun:"document",
+      emptyTitle:"No documents yet", emptyText:"Add passports, licences and GHIC cards for each of you.",
+      defaults:()=>({who:"carl",type:"passport",remind:180}),
+      fields:[{name:"who",label:"Whose",type:"select",options:pOpts},{name:"type",label:"Document",type:"select",options:DOCTYPES},{name:"number",label:"Number"},{name:"expiry",label:"Expires",type:"date",required:true},{name:"remind",label:"Warn me (days before)",type:"number",step:"1"},{name:"notes",label:"Notes",full:true}],
+      sort:(a,b)=>(H.parse(a.expiry)||0)-(H.parse(b.expiry)||0),
+      row:x=>{ const e=H.parse(x.expiry); return {date:e, title:(H.PERSON[x.who]||"")+"'s "+(DOC[x.type]||"document").toLowerCase(), pill:H.duePill(e,Number(x.remind)||180,{late:"Expired",soon:"Renew soon",ok:"In date"}), sub:[x.number&&("no. "+x.number),e&&("expires "+H.long(e)),x.notes].filter(Boolean).join(" · ")}; } },
+  ],
+});
+
+})();
+</script>
+</body>
+</html>

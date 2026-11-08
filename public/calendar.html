@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Family Calendar · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Family Calendar</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+H.tool({
+  stats: d => {
+    const t=H.today(), end=H.addDays(t,7);
+    const occ=(ev)=>{ let x=H.parse(ev.date); if(!x) return null; if(ev.yearly){ x=new Date(t.getFullYear(),x.getMonth(),x.getDate()); if(x<t) x.setFullYear(x.getFullYear()+1);} return x; };
+    const up=d.cal_events.map(e=>({e,d:occ(e)})).filter(x=>x.d&&x.d>=t).sort((a,b)=>a.d-b.d);
+    return [
+      {k:"Next up", v:up[0]?H.short(up[0].d):"–", s:up[0]?up[0].e.title:"Nothing in the diary"},
+      {k:"This week", v:String(up.filter(x=>x.d<=end).length), s:"Events in the next 7 days"},
+      {k:"In the diary", v:String(up.length), s:"From today"},
+    ];
+  },
+  sections: [
+    { col:"cal_events", title:"Diary", intro:"School dates, family plans, days off, anything with a date. Tick yearly for anniversaries.", addLabel:"Add event", noun:"event",
+      emptyTitle:"Nothing in the diary yet", emptyText:"Add plans for any of you. Birthdays are already on the hub's front page.",
+      defaults:()=>({date:H.iso(H.today()),who:"everyone"}),
+      fields:[{name:"title",label:"What",required:true,full:true},{name:"date",label:"Date",type:"date",required:true},{name:"time",label:"Time",type:"time"},{name:"who",label:"Who",type:"select",options:H.PEOPLE},{name:"where",label:"Where"},{name:"yearly",label:"Happens every year",type:"checkbox"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>{ const t=H.today(); const occ=(ev)=>{ let x=H.parse(ev.date); if(ev.yearly){ x=new Date(t.getFullYear(),x.getMonth(),x.getDate()); if(x<t) x.setFullYear(x.getFullYear()+1);} return x; }; const x=occ(a),y=occ(b); const fa=x>=t,fb=y>=t; if(fa!==fb) return fa?-1:1; return fa?x-y:y-x; },
+      row:e=>{ const t=H.today(); let d=H.parse(e.date); if(e.yearly&&d){ d=new Date(t.getFullYear(),d.getMonth(),d.getDate()); if(d<t) d.setFullYear(d.getFullYear()+1);} const past=d&&d<t;
+        return {date:past?undefined:d, dayBadge:past?[d.getDate(),"past"]:undefined, title:e.title, pill:(past?'<span class="pill flat">Past</span>':"")+(e.yearly?' <span class="pill flat">Yearly</span>':""), sub:[H.PERSON[e.who],d&&H.long(d),e.time,e.where].filter(Boolean).join(" · "), subHtml:e.notes?'<div class="note">'+H.esc(e.notes)+'</div>':""}; } },
+  ],
+});
+
+})();
+</script>
+</body>
+</html>

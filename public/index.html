@@ -171,20 +171,20 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   <div class="tools">
     <a class="tool" href="/bills.html"><div class="ico"><svg><use href="#i-pound"/></svg></div><div><div class="tname">Bills &amp; Budget</div><div class="tdesc" id="billsDesc">Direct debits, monthly spend</div></div></a>
     <a class="tool" href="/renewals.html"><div class="ico"><svg><use href="#i-shield"/></svg></div><div><div class="tname">Renewals</div><div class="tdesc" id="renDesc">Insurance, MOT, tax, licences</div></div></a>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-file"/></svg></div><div><div class="tname">Disputes &amp; Claims</div><div class="tdesc">Letters, refs, deadlines</div></div></div>
+    <a class="tool" href="/disputes.html"><div class="ico"><svg><use href="#i-file"/></svg></div><div><div class="tname">Disputes &amp; Claims</div><div class="tdesc" id="casesDesc">Letters, refs, deadlines</div></div></a>
   </div>
 
-  <div class="label">Home &amp; Cars</div>
+  <div class="label">Home, Diary &amp; Cars</div>
   <div class="tools">
-    <div class="tool soon"><div class="ico"><svg><use href="#i-home"/></svg></div><div><div class="tname">Home Admin</div><div class="tdesc">Utilities, council tax, contacts</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-wrench"/></svg></div><div><div class="tname">Home Maintenance</div><div class="tdesc">Boiler, repairs, tradespeople</div></div></div>
+    <a class="tool" href="/home.html"><div class="ico"><svg><use href="#i-home"/></svg></div><div><div class="tname">Home</div><div class="tdesc" id="homeDesc">Suppliers, maintenance, tradespeople</div></div></a>
+    <a class="tool" href="/calendar.html"><div class="ico"><svg><use href="#i-cal"/></svg></div><div><div class="tname">Family Calendar</div><div class="tdesc" id="calDesc">Plans, school, days off</div></div></a>
     <a class="tool" href="/renewals.html"><div class="ico"><svg><use href="#i-car"/></svg></div><div><div class="tname">Cars</div><div class="tdesc">MOT, tax and insurance in Renewals</div></div></a>
   </div>
 
   <div class="label">Health, Travel &amp; the Dog</div>
   <div class="tools">
-    <div class="tool soon"><div class="ico"><svg><use href="#i-heart"/></svg></div><div><div class="tname">Health</div><div class="tdesc">Appointments, prescriptions</div></div></div>
-    <div class="tool soon"><div class="ico"><svg><use href="#i-plane"/></svg></div><div><div class="tname">Travel</div><div class="tdesc">Trips, bookings, passports</div></div></div>
+    <a class="tool" href="/health.html"><div class="ico"><svg><use href="#i-heart"/></svg></div><div><div class="tname">Health</div><div class="tdesc" id="healthDesc">Appointments, prescriptions</div></div></a>
+    <a class="tool" href="/travel.html"><div class="ico"><svg><use href="#i-plane"/></svg></div><div><div class="tname">Travel</div><div class="tdesc" id="travelDesc">Trips, bookings, passports</div></div></a>
     <a class="tool" href="/dog.html"><div class="ico"><svg><use href="#i-paw"/></svg></div><div><div class="tname" id="dogName">Maggie</div><div class="tdesc" id="dogDesc">Vet, jabs, flea and worm</div></div></a>
   </div>
 
@@ -197,6 +197,7 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
 </main>
 
 <script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
 <script>
 (function(){
   var today=new Date(); today.setHours(0,0,0,0);
@@ -235,8 +236,31 @@ a:focus-visible{outline:3px solid var(--copper);outline-offset:2px}
   draw(fixed);
   if(!window.Hub)return;
   var H=Hub;
-  Promise.all([H.list("bills"),H.list("renewals"),H.list("dog_tasks"),H.list("dog_profile")]).then(function(res){
-    var extra=[], bills=res[0], ren=res[1], tasks=res[2], dog=res[3][0];
+  var cols=["bills","renewals","dog_tasks","dog_profile","home_tasks","home_suppliers","health_appts","health_meds","travel_trips","travel_docs","cal_events","cases"];
+  Promise.all(cols.map(function(c){return H.list(c).catch(function(){return []})})).then(function(res){
+    var D={}; cols.forEach(function(c,i){D[c]=res[i]});
+    var extra=[], bills=D.bills, ren=D.renewals, tasks=D.dog_tasks, dog=D.dog_profile[0];
+    function setDesc(id,t){var e=document.getElementById(id);if(e)e.textContent=t}
+    function every(t){var l=H.parse(t.last);return l?H.addDays(l,Number(t.every)||30):null}
+    var homeDue=0;
+    D.home_tasks.forEach(function(t){var d=every(t);if(d&&H.days(d)<=14){homeDue++;extra.push({t:t.name,s:"home maintenance",d:d,p:H.days(d)<0?"late":"soon",pl:H.days(d)<0?"Overdue":"Home",href:"/home.html"})}});
+    D.home_suppliers.forEach(function(x){var d=H.parse(x.contractEnd);if(d&&H.days(d)<=45)extra.push({t:x.name+" contract ends",s:"compare before it rolls over",d:d,p:"soon",pl:"Home",href:"/home.html"})});
+    if(D.home_tasks.length||D.home_suppliers.length)setDesc("homeDesc",homeDue?homeDue+" job"+(homeDue===1?"":"s")+" due soon":"Maintenance up to date");
+    var appts=0;
+    D.health_appts.forEach(function(a){var d=H.parse(a.date);if(d&&H.days(d)>=0){appts++;if(H.days(d)<=14)extra.push({t:a.what,s:(H.PERSON&&H.PERSON[a.who]||a.who||"")+(a.time?" at "+a.time:""),d:d,p:"ok",pl:"Health",href:"/health.html"})}});
+    D.health_meds.forEach(function(m){var d=every(m);if(d&&H.days(d)<=7)extra.push({t:"Reorder "+m.name,s:"repeat prescription",d:d,p:H.days(d)<0?"late":"soon",pl:"Health",href:"/health.html"})});
+    if(D.health_appts.length||D.health_meds.length)setDesc("healthDesc",appts?appts+" appointment"+(appts===1?"":"s")+" booked":"No appointments booked");
+    var trips=0;
+    D.travel_trips.forEach(function(t){var d=H.parse(t.start);if(d&&H.days(d)>=0){trips++;if(H.days(d)<=30)extra.push({t:t.name,s:"trip",d:d,p:"ok",pl:"Travel",href:"/travel.html"})}});
+    var docs=0;
+    D.travel_docs.forEach(function(x){var d=H.parse(x.expiry);if(d&&H.days(d)<=(Number(x.remind)||180)){docs++;extra.push({t:"Renew "+(x.type==="passport"?"passport":x.type||"document"),s:(H.PERSON[x.who]||x.who||"")+", expires",d:d,p:H.days(d)<0?"late":"soon",pl:"Travel",href:"/travel.html"})}});
+    if(D.travel_trips.length||D.travel_docs.length)setDesc("travelDesc",(trips?trips+" trip"+(trips===1?"":"s")+" booked":"No trips booked")+(docs?", "+docs+" to renew":""));
+    var cal=0;
+    D.cal_events.forEach(function(e){var d=H.parse(e.date);if(!d)return;if(e.yearly){d=new Date(today.getFullYear(),d.getMonth(),d.getDate());if(d<today)d.setFullYear(d.getFullYear()+1)}if(H.days(d)>=0){cal++;if(H.days(d)<=14)extra.push({t:e.title,s:e.time?"at "+e.time:"diary",d:d,p:"ok",pl:"Diary",href:"/calendar.html"})}});
+    if(D.cal_events.length)setDesc("calDesc",cal+" coming up");
+    var open=0;
+    D.cases.forEach(function(c){if(["settled","closed"].indexOf(c.status)>-1)return;open++;var d=H.parse(c.deadline);if(d&&H.days(d)<=30&&!/ICB hold/i.test(c.deadlineWhat||""))extra.push({t:c.title,s:c.deadlineWhat||"deadline",d:d,p:H.days(d)<0?"late":"hold",pl:"Deadline",href:"/disputes.html"})});
+    if(D.cases.length)setDesc("casesDesc",open?open+" open case"+(open===1?"":"s"):"No open cases");
     var perMonth=0;
     bills.forEach(function(b){
       var f=H.FREQ[b.freq]||H.FREQ.monthly; if((b.who||"carl")==="carl")perMonth+=(Number(b.amount)||0)*f.perMonth;

@@ -182,7 +182,14 @@ function randomBase32(bytes) {
 // One table. Each record belongs to a collection and holds its fields as JSON.
 // Only reachable with a valid session (checked in fetch above).
 
-const COLLECTIONS = new Set(["bills", "renewals", "dog_profile", "dog_tasks", "dog_log"]);
+const COLLECTIONS = new Set([
+  "bills", "renewals", "dog_profile", "dog_tasks", "dog_log",
+  "home_suppliers", "home_tasks", "home_trades", "home_log", "home_meters",
+  "health_appts", "health_meds", "health_contacts",
+  "travel_trips", "travel_docs",
+  "cal_events",
+  "cases", "case_log",
+]);
 const MAX_BODY = 20000;
 let schemaReady = false;
 

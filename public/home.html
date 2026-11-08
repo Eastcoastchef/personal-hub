@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Home · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Home</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+const SUPTYPES=[["energy","Gas and electric"],["water","Water"],["council","Council tax"],["broadband","Broadband"],["phone","Phone"],["tv","TV licence and streaming"],["insurance","Home insurance"],["mortgage","Mortgage or rent"],["other","Other"]];
+const SUP=Object.fromEntries(SUPTYPES);
+H.tool({
+  stats: d => {
+    const due = d.home_tasks.filter(t => { const n = H.nextEvery(t); return n && H.days(n) <= 14; }).length;
+    const yr = new Date().getFullYear();
+    const spent = d.home_log.filter(l => (H.parse(l.date)||new Date(0)).getFullYear() === yr).reduce((s,l)=>s+(Number(l.cost)||0),0);
+    const lastM = d.home_meters.slice().sort((a,b)=>(H.parse(b.date)||0)-(H.parse(a.date)||0))[0];
+    return [
+      {k:"Jobs due in 2 weeks", v:String(due), s: due ? "See the maintenance list" : "All up to date"},
+      {k:"Spent on repairs this year", v:H.money(spent), s:d.home_log.length + (d.home_log.length===1?" job logged":" jobs logged")},
+      {k:"Last meter reading", v:lastM ? H.short(H.parse(lastM.date)) : "–", s:lastM ? (H.days(H.parse(lastM.date))===0 ? "Today" : -H.days(H.parse(lastM.date)) + " days ago") : "None yet"},
+    ];
+  },
+  sections: [
+    { col:"home_tasks", title:"Maintenance", intro:"Jobs that come round again. Tap Done when they're done.", addLabel:"Add job", noun:"job",
+      emptyTitle:"No maintenance jobs yet", emptyText:"Start with the usual ones, then set when each was last done.",
+      starter:{label:"Add the usual jobs", done:"Added. Set when each was last done.", items:[
+        {name:"Boiler service", every:365},{name:"Gas safety check", every:365},{name:"Test smoke and CO alarms", every:30},
+        {name:"Bleed radiators", every:365},{name:"Clear gutters", every:365},{name:"Clean extractor and filters", every:90}]},
+      fields:[{name:"name",label:"Job",required:true,full:true},{name:"every",label:"Every (days)",type:"number",step:"1",required:true,value:365},{name:"last",label:"Last done",type:"date"},{name:"who",label:"Who does it",placeholder:"e.g. Me, or the boiler engineer"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>((H.nextEvery(a)||-Infinity)-(H.nextEvery(b)||-Infinity)),
+      row:t=>{ const n=H.nextEvery(t); return {date:n, title:t.name, pill:H.duePill(n,14,{none:"Set last done"}), sub:"Every "+t.every+" days"+(t.last?" · last done "+H.long(H.parse(t.last)):"")+(t.who?" · "+t.who:"")}; },
+      actions:[{label:"Done today", run:async(t,c)=>{ const today=H.iso(H.today()); await c.save("home_tasks",t,{last:today}); await c.add("home_log",{date:today,title:t.name,who:t.who||""}); H.toast(t.name+" done"); }}] },
+    { col:"home_suppliers", title:"Suppliers and accounts", intro:"Who supplies what, and the numbers they'll ask for.", addLabel:"Add supplier", noun:"supplier",
+      emptyTitle:"No suppliers yet", emptyText:"Add energy, water, council tax, broadband and the rest, with account numbers and phone numbers.",
+      fields:[{name:"type",label:"What for",type:"select",options:SUPTYPES},{name:"name",label:"Company",required:true},{name:"account",label:"Account number"},{name:"phone",label:"Phone",type:"tel"},{name:"contractEnd",label:"Contract or fix ends",type:"date"},{name:"tariff",label:"Tariff"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>(a.type||"").localeCompare(b.type||""),
+      row:s=>{ const ce=H.parse(s.contractEnd); return {initials:s.name, title:s.name, pill: ce ? H.duePill(ce,45,{late:"Out of contract",soon:"Contract ends soon",ok:"In contract"}) : "", sub:[SUP[s.type],s.account&&("acct "+s.account),s.phone,s.tariff,ce&&("ends "+H.long(ce))].filter(Boolean).join(" · ")}; } },
+    { col:"home_trades", title:"Tradespeople", intro:"People you'd use again, and anyone you wouldn't.", addLabel:"Add tradesperson", noun:"tradesperson",
+      emptyTitle:"No tradespeople yet", emptyText:"Plumber, electrician, boiler engineer, roofer and so on.",
+      fields:[{name:"name",label:"Name or company",required:true},{name:"trade",label:"Trade",placeholder:"e.g. Plumber"},{name:"phone",label:"Phone",type:"tel"},{name:"rating",label:"Use again?",type:"select",options:[["yes","Yes"],["maybe","Maybe"],["no","No"]]},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>(a.trade||"").localeCompare(b.trade||""),
+      row:t=>({initials:t.trade||t.name, title:t.name, pill:t.rating==="no"?'<span class="pill late">Avoid</span>':t.rating==="maybe"?'<span class="pill soon">Maybe</span>':'<span class="pill ok">Use again</span>', sub:[t.trade,t.phone,t.notes].filter(Boolean).join(" · ")}) },
+    { col:"home_meters", title:"Meter readings", intro:"Take one when you switch supplier, move, or query a bill.", addLabel:"Add reading", noun:"reading",
+      emptyTitle:"No readings yet", emptyText:"Add gas, electric and water readings with the date.",
+      defaults:()=>({date:H.iso(H.today())}),
+      fields:[{name:"date",label:"Date",type:"date",required:true},{name:"electric",label:"Electric",type:"number",step:"any"},{name:"gas",label:"Gas",type:"number",step:"any"},{name:"water",label:"Water",type:"number",step:"any"},{name:"notes",label:"Notes",full:true}],
+      sort:(a,b)=>(H.parse(b.date)||0)-(H.parse(a.date)||0),
+      row:(m,d)=>{ const dt=H.parse(m.date); const prev=d.home_meters.filter(x=>H.parse(x.date)<dt).sort((a,b)=>H.parse(b.date)-H.parse(a.date))[0];
+        const use=(k)=>m[k]!=null&&m[k]!==""?(k[0].toUpperCase()+k.slice(1))+" "+m[k]+(prev&&prev[k]!=null&&prev[k]!==""?" (+"+(Number(m[k])-Number(prev[k])).toFixed(0)+")":""):"";
+        return {dayBadge:[dt?dt.getDate():"?", dt?H.short(dt).split(" ")[1]+" "+String(dt.getFullYear()).slice(2):""], title:[use("electric"),use("gas"),use("water")].filter(Boolean).join(" · ")||"Reading", sub:m.notes}; } },
+    { col:"home_log", title:"Repairs and jobs done", intro:"What was done, by who, and what it cost.", addLabel:"Add job done", noun:"job",
+      emptyTitle:"Nothing logged yet", emptyText:"Maintenance you mark as done shows up here too.",
+      defaults:()=>({date:H.iso(H.today())}),
+      fields:[{name:"date",label:"Date",type:"date",required:true},{name:"title",label:"What was done",required:true},{name:"who",label:"Who did it"},{name:"cost",label:"Cost (£)",type:"number",step:"0.01"},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>(H.parse(b.date)||0)-(H.parse(a.date)||0),
+      row:l=>{ const dt=H.parse(l.date); return {dayBadge:[dt?dt.getDate():"?", dt?H.short(dt).split(" ")[1]+" "+String(dt.getFullYear()).slice(2):""], title:l.title, right:l.cost!=null&&l.cost!==""?H.money(l.cost):"", sub:[l.who,l.notes].filter(Boolean).join(" · ")}; } },
+  ],
+});
+
+})();
+</script>
+</body>
+</html>

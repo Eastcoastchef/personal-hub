@@ -95,3 +95,6 @@ textarea{min-height:70px;resize:vertical}
 .chip{border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--head);border-color:var(--head);color:#fff}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.ico-badge{width:52px;height:44px;flex-shrink:0;border-radius:9px;background:var(--copper-pale);color:var(--copper);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:14px}
+.meta{color:var(--muted);font-size:13.5px}
+.item .note{font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}

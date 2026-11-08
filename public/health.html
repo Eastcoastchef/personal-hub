@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Health · Carl Jones Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/tools.css">
+</head>
+<body>
+<div class="header"><div class="gut header-inner">
+  <a class="brand" href="/"><div class="crest">CJ</div><div><div class="brand-name">Health</div><div class="brand-tag">Carl Jones Hub</div></div></a>
+  <a class="back" href="/">← Back to hub</a>
+</div><div class="rule"></div></div>
+<main class="gut" id="app"></main>
+<script src="/hub.js"></script>
+<script src="/tool-engine.js"></script>
+<script>
+(function(){
+const H = Hub;
+const pOpts=H.PEOPLE.filter(p=>p[0]!=="everyone");
+H.tool({
+  stats: d => {
+    const ap = d.health_appts.filter(a=>{const x=H.parse(a.date);return x&&H.days(x)>=0;}).sort((a,b)=>H.parse(a.date)-H.parse(b.date));
+    const meds = d.health_meds.filter(m=>{const n=H.nextEvery(m);return n&&H.days(n)<=7;}).length;
+    return [
+      {k:"Next appointment", v: ap[0]?H.short(H.parse(ap[0].date)):"–", s: ap[0]?(H.PERSON[ap[0].who]||"")+" · "+ap[0].what:"None booked"},
+      {k:"Upcoming appointments", v:String(ap.length), s:"Booked from today"},
+      {k:"Repeat prescriptions due", v:String(meds), s:"In the next 7 days"},
+    ];
+  },
+  sections: [
+    { col:"health_appts", title:"Appointments", intro:"GP, dentist, optician, hospital. Past ones stay as a record.", addLabel:"Add appointment", noun:"appointment",
+      emptyTitle:"No appointments yet", emptyText:"Add anything booked for any of you.",
+      defaults:()=>({who:"carl"}),
+      fields:[{name:"what",label:"What",required:true,placeholder:"e.g. Dentist check-up"},{name:"who",label:"Who",type:"select",options:pOpts},{name:"date",label:"Date",type:"date",required:true},{name:"time",label:"Time",type:"time"},{name:"where",label:"Where",full:true},{name:"notes",label:"Notes",type:"textarea",full:true}],
+      sort:(a,b)=>{ const x=H.parse(a.date),y=H.parse(b.date),t=H.today(); const fa=x>=t, fb=y>=t; if(fa!==fb) return fa?-1:1; return fa?x-y:y-x; },
+      row:a=>{ const d=H.parse(a.date); const past=d&&H.days(d)<0; return {date:past?undefined:d, dayBadge:past?[d.getDate(),"done"]:undefined, title:a.what, pill:past?'<span class="pill flat">Past</span>':(H.days(d)<=2?'<span class="pill soon">Soon</span>':""), sub:[H.PERSON[a.who],d&&H.long(d),a.time,a.where].filter(Boolean).join(" · ")}; } },
+    { col:"health_meds", title:"Repeat prescriptions", intro:"Set how often you reorder. Tap Ordered when you've done it.", addLabel:"Add prescription", noun:"prescription",
+      emptyTitle:"No repeat prescriptions", emptyText:"Add any regular medicines so you get a nudge before they run out.",
+      defaults:()=>({who:"carl",every:28}),
+      fields:[{name:"name",label:"Medicine",required:true},{name:"who",label:"Who",type:"select",options:pOpts},{name:"dose",label:"Dose",placeholder:"e.g. 1 a day"},{name:"every",label:"Reorder every (days)",type:"number",step:"1",required:true},{name:"last",label:"Last ordered",type:"date"},{name:"pharmacy",label:"Pharmacy"}],
+      sort:(a,b)=>((H.nextEvery(a)||-Infinity)-(H.nextEvery(b)||-Infinity)),
+      row:m=>{ const n=H.nextEvery(m); return {date:n, title:m.name, pill:H.duePill(n,7,{none:"Set last ordered",soon:"Order soon",late:"Order now"}), sub:[H.PERSON[m.who],m.dose,"every "+m.every+" days",m.pharmacy].filter(Boolean).join(" · ")}; },
+      actions:[{label:"Ordered today", run:async(m,c)=>{ await c.save("health_meds",m,{last:H.iso(H.today())}); H.toast("Marked as ordered"); }}] },
+    { col:"health_contacts", title:"Surgeries and contacts", intro:"GP, dentist, optician and the rest, with phone numbers.", addLabel:"Add contact", noun:"contact",
+      emptyTitle:"No contacts yet", emptyText:"Add your GP, dentist and optician.",
+      fields:[{name:"name",label:"Practice or name",required:true},{name:"type",label:"Type",placeholder:"e.g. GP"},{name:"phone",label:"Phone",type:"tel"},{name:"who",label:"Who's registered",placeholder:"e.g. All of us"},{name:"address",label:"Address",full:true},{name:"notes",label:"Notes (NHS numbers etc.)",type:"textarea",full:true}],
+      sort:(a,b)=>(a.type||"").localeCompare(b.type||""),
+      row:c=>({initials:c.type||c.name, title:c.name, sub:[c.type,c.phone,c.who,c.address].filter(Boolean).join(" · "), subHtml:c.notes?'<div class="note">'+H.esc(c.notes)+'</div>':""}) },
+  ],
+});
+
+})();
+</script>
+</body>
+</html>
