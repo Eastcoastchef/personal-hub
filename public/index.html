@@ -129,6 +129,8 @@
 
     <nav class="week glass" id="week" aria-label="This week"></nav>
 
+    <div class="glass" id="payday" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span class="k">Payday</span><span id="payTxt" style="font-size:14px"></span></div>
+
     <div class="pair">
       <a class="cardx glass" id="next" href="/calendar.html">
         <span class="k">Next up</span>
@@ -190,6 +192,24 @@
   function ic(id, s){ return '<svg width="'+(s||22)+'" height="'+(s||22)+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#'+id+'"/></svg>'; }
   function next(m,d){ var x = new Date(today.getFullYear(), m, d); if (x < today) x.setFullYear(x.getFullYear()+1); return x; }
   function fmt(d){ return DAYS[d.getDay()].slice(0,3) + " " + d.getDate() + " " + MON[d.getMonth()]; }
+
+
+  // Payday: last working day of the month (Mon to Fri, England bank holidays off), London time
+  (function(){
+    var BH = ["2026-12-25","2026-12-28","2027-01-01","2027-03-26","2027-03-29","2027-05-03","2027-05-31","2027-08-30","2027-12-27","2027-12-28","2028-01-03","2028-04-14","2028-04-17","2028-05-01","2028-05-29","2028-08-28","2028-12-25","2028-12-26"];
+    var p = {}; new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"numeric",day:"numeric"}).formatToParts(new Date()).forEach(function(x){ p[x.type] = Number(x.value); });
+    var now = Date.UTC(p.year, p.month-1, p.day);
+    function lastWork(y,m){
+      var d = new Date(Date.UTC(y, m+1, 0));
+      while (d.getUTCDay() === 0 || d.getUTCDay() === 6 || BH.indexOf(d.toISOString().slice(0,10)) > -1) d.setUTCDate(d.getUTCDate()-1);
+      return d;
+    }
+    var pay = lastWork(p.year, p.month-1);
+    if (pay.getTime() < now) pay = lastWork(p.year, p.month);
+    var n = Math.round((pay.getTime() - now) / 864e5);
+    var txt = n === 0 ? "<b>Payday today</b>" : "<b>" + n + (n === 1 ? " day" : " days") + "</b> to go";
+    document.getElementById("payTxt").innerHTML = txt + " · " + DAYS[pay.getUTCDay()].slice(0,3) + " " + pay.getUTCDate() + " " + MON[pay.getUTCMonth()];
+  })();
 
   // Family and birthday rings
   var FAM = [["Caley",1985,7,17],["Jessica",2009,10,17],["Ben",2008,2,31],["Bryony",2002,3,30]];
